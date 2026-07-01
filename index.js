@@ -291,23 +291,31 @@ async function run() {
         // 1.5초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
         await new Promise(r => setTimeout(r, 1500));
         try {
-            const submitBtn = await targetFrame.$('button[type="submit"], button.btn-submit, .btn-login-submit, button:has-text("로그인")');
+            // 표준 CSS 선택자 조합 사용 (비표준 :has-text 선택자는 제외하여 구문 오류 방지)
+            const submitBtn = await targetFrame.$('button[type="submit"], button.btn-submit, .btn-login-submit, .btn-submit');
             if (submitBtn) {
-                console.log("🔘 로그인 전송 버튼 클릭...");
+                console.log("🔘 로그인 전송 버튼 클릭 (CSS)...");
                 await submitBtn.click();
+            } else {
+                // 텍스트 매칭으로 전송 버튼 클릭 시도
+                const btns = await targetFrame.$$('button, a, div[role="button"]');
+                for (const btn of btns) {
+                    const text = (await targetFrame.evaluate(el => el.innerText, btn) || '').trim();
+                    if (text === '로그인' || text.includes('로그인')) {
+                        console.log(`🔘 로그인 전송 버튼 클릭 (텍스트 매칭: "${text}")...`);
+                        await btn.click();
+                        break;
+                    }
+                }
             }
         } catch (e) {
             console.log(`⚠️ 로그인 버튼 클릭 보조 기능 건너뜀 (이미 전송되었거나 화면이 전환됨): ${e.message}`);
         }
 
         // 로그인 완료 후 페이지 이동 대기
-        if (activePage !== page) {
-            console.log("⏳ 팝업창에서 로그인 처리 중... 메인 창의 리다이렉트 대기...");
-            await new Promise(r => setTimeout(r, 5000));
-            // 메인 페이지가 로그인된 상태로 동기화될 때까지 대기
-        } else {
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
-        }
+        // SPA 환경에서는 주소 이동이 발생하지 않으므로 단순 대기(4초) 후 바로 방송국 페이지로 이동하여 세션을 인계받음
+        console.log("⏳ 로그인 처리 및 세션 저장 대기 중 (4초)...");
+        await new Promise(r => setTimeout(r, 4000));
         console.log("✅ 로그인 완료!");
 
         // 2. 라이브 방송 페이지로 이동
