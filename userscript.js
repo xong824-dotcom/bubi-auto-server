@@ -14,7 +14,13 @@
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
     fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap';
-    document.head.appendChild(fontLink);
+    if (document.head) {
+        document.head.appendChild(fontLink);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.head) document.head.appendChild(fontLink);
+        });
+    }
 
     /* ================================================================
        1. 데이터베이스 및 로컬 스토리지 관리
