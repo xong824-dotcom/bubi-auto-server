@@ -181,6 +181,18 @@ async function run() {
                         const text = (await page.evaluate(el => el.innerText, el) || '').trim();
                         const textLower = text.toLowerCase();
                         
+                        // 구글, 카카오, 네이버 등의 소셜 로그인 수단은 오매칭 방지를 위해 제외
+                        if (
+                            textLower.includes('google') || 
+                            textLower.includes('kakao') || 
+                            textLower.includes('naver') || 
+                            textLower.includes('구글') || 
+                            textLower.includes('카카오') || 
+                            textLower.includes('네이버')
+                        ) {
+                            continue;
+                        }
+                        
                         if (
                             textLower === 'id' || 
                             textLower.replace(/\s/g, '') === 'id' ||
