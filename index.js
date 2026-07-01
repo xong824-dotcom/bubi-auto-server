@@ -52,11 +52,11 @@ async function run() {
         // 페이지가 완전히 로딩되도록 대기
         await new Promise(r => setTimeout(r, 2000));
 
-        let inputs = await page.$$('input');
+        // 비밀번호 입력란이 있는지 확인 (없다면 로그인 모달이 닫혀있는 상태)
+        let pwInputEl = await page.$('input[type="password"]');
         
-        // 입력 필드가 발견되지 않았을 경우 (메인 페이지로 튕겼거나 로그인 버튼을 눌러 모달을 띄워야 하는 경우)
-        if (inputs.length === 0) {
-            console.log("💡 입력창이 발견되지 않았습니다. 로그인 버튼 클릭을 시도합니다...");
+        if (!pwInputEl) {
+            console.log("💡 비밀번호 입력창이 발견되지 않았습니다. 로그인 모달이 닫혀있는 것으로 간주하고 로그인 버튼 클릭을 시도합니다...");
             
             // 로그인 버튼으로 추정되는 선택자들
             const loginSelectors = [
@@ -82,23 +82,25 @@ async function run() {
             
             if (!clicked) {
                 // 엘리먼트 텍스트 매칭으로 '로그인' 버튼 탐색
-                const elements = await page.$$('button, a, div, span');
+                const elements = await page.$$('button, a, div, span, p');
                 for (const el of elements) {
-                    const text = (await page.evaluate(el => el.innerText, el) || '').trim();
-                    if (text === '로그인' || text.includes('로그인')) {
-                        console.log("🔘 텍스트 매칭으로 로그인 버튼 발견, 클릭합니다.");
-                        await el.click();
-                        clicked = true;
-                        break;
-                    }
+                    try {
+                        const text = (await page.evaluate(el => el.innerText, el) || '').trim();
+                        if (text === '로그인' || text.includes('로그인')) {
+                            console.log("🔘 텍스트 매칭으로 로그인 버튼 발견, 클릭합니다.");
+                            await el.click();
+                            clicked = true;
+                            break;
+                        }
+                    } catch (e) {}
                 }
             }
             
-            // 모달/입력 필드가 뜰 때까지 2초 대기
-            await new Promise(r => setTimeout(r, 2000));
-            inputs = await page.$$('input');
+            // 모달/입력 필드가 뜰 때까지 3초 대기
+            await new Promise(r => setTimeout(r, 3000));
         }
 
+        const inputs = await page.$$('input');
         console.log(`[Input Info] 페이지에서 총 ${inputs.length}개의 input 요소를 감지했습니다.`);
         
         let idInput = null;
@@ -141,8 +143,8 @@ async function run() {
         console.log("🔘 로그인 시도...");
         await page.keyboard.press('Enter');
 
-        // 1초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
-        await new Promise(r => setTimeout(r, 1000));
+        // 1.5초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
+        await new Promise(r => setTimeout(r, 1500));
         const submitBtn = await page.$('button[type="submit"], button.btn-submit, .btn-login-submit');
         if (submitBtn) {
             console.log("🔘 로그인 전송 버튼 클릭...");
