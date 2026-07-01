@@ -49,21 +49,49 @@ async function run() {
         console.log("🔑 로그인 페이지로 이동 중...");
         await page.goto('https://www.bubeelive.com/login', { waitUntil: 'networkidle2' });
 
-        // 로그인 입력 필드가 나타날 때까지 대기
-        await page.waitForSelector('input[type="text"], input[type="password"]', { timeout: 30000 });
+        // 페이지 내의 input 태그가 나타날 때까지 대기
+        await page.waitForSelector('input', { timeout: 30000 });
         
-        console.log("📝 로그인 정보 입력 중...");
-        const idInputs = await page.$$('input[type="text"]');
-        const pwInputs = await page.$$('input[type="password"]');
+        const inputs = await page.$$('input');
+        console.log(`[Input Info] 페이지에서 총 ${inputs.length}개의 input 요소를 감지했습니다.`);
+        
+        let idInput = null;
+        let pwInput = null;
 
-        if (idInputs.length > 0 && pwInputs.length > 0) {
-            await idInputs[0].type(BUBEE_ID);
-            await pwInputs[0].type(BUBEE_PW);
-        } else {
-            throw new Error("로그인 입력 필드를 찾을 수 없습니다.");
+        // 감지된 input 필드들을 돌며 아이디와 비밀번호 필드 식별
+        for (const input of inputs) {
+            const type = (await page.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
+            const placeholder = (await page.evaluate(el => el.getAttribute('placeholder'), input) || '');
+            console.log(`[Input Debug] Input 요소 발견: type="${type}", placeholder="${placeholder}"`);
+            
+            if (type === 'password') {
+                pwInput = input;
+            } else if (type === 'text' || type === 'email' || type === 'tel' || type === 'number' || type === '') {
+                // placeholder에 비밀번호/패스워드 관련 키워드가 없으면 아이디 필드로 선택
+                if (!placeholder.includes('비밀번호') && !placeholder.includes('password') && !placeholder.includes('패스워드')) {
+                    idInput = input;
+                }
+            }
         }
 
-        // 로그인 버튼 클릭 혹은 엔터 입력
+        // 명시적으로 찾지 못한 경우 순서대로 매핑 (1번째: ID, 2번째: PW)
+        if (!idInput && inputs.length > 0) idInput = inputs[0];
+        if (!pwInput && inputs.length > 1) pwInput = inputs[1];
+
+        if (idInput && pwInput) {
+            console.log("📝 로그인 정보 입력 중...");
+            
+            // 기존 텍스트가 있을 수 있으므로 선택하여 삭제 후 입력
+            await idInput.click({ clickCount: 3 });
+            await idInput.type(BUBEE_ID);
+            
+            await pwInput.click({ clickCount: 3 });
+            await pwInput.type(BUBEE_PW);
+        } else {
+            throw new Error(`로그인 입력 필드를 식별할 수 없습니다. (검색된 input 개수: ${inputs.length})`);
+        }
+
+        // 로그인 시도 (엔터 입력)
         console.log("🔘 로그인 시도...");
         await page.keyboard.press('Enter');
 
