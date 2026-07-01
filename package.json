@@ -1,0 +1,13 @@
+{
+  "name": "bubi-auto-server",
+  "version": "1.0.0",
+  "description": "Bubeelive Auto Helper Bot Server for Railway",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "puppeteer": "^22.6.0"
+  }
+}
