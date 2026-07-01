@@ -233,16 +233,20 @@ async function run() {
             throw new Error(`로그인 입력 필드를 식별할 수 없습니다. (비밀번호 감지: ${pwInput ? 'O' : 'X'}, 아이디 감지: ${idInput ? 'O' : 'X'})`);
         }
 
-        // 로그인 시도
+        // 로그인 시도 (엔터 키 입력)
         console.log("🔘 로그인 시도...");
         await activePage.keyboard.press('Enter');
 
         // 1.5초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
         await new Promise(r => setTimeout(r, 1500));
-        const submitBtn = await targetFrame.$('button[type="submit"], button.btn-submit, .btn-login-submit, button:has-text("로그인")');
-        if (submitBtn) {
-            console.log("🔘 로그인 전송 버튼 클릭...");
-            await submitBtn.click();
+        try {
+            const submitBtn = await targetFrame.$('button[type="submit"], button.btn-submit, .btn-login-submit, button:has-text("로그인")');
+            if (submitBtn) {
+                console.log("🔘 로그인 전송 버튼 클릭...");
+                await submitBtn.click();
+            }
+        } catch (e) {
+            console.log(`⚠️ 로그인 버튼 클릭 보조 기능 건너뜀 (이미 전송되었거나 화면이 전환됨): ${e.message}`);
         }
 
         // 로그인 완료 후 페이지 이동 대기
