@@ -52,37 +52,37 @@ async function run() {
         // 페이지가 완전히 로딩되도록 대기
         await new Promise(r => setTimeout(r, 2000));
 
-        // 디버깅용: 로드된 모든 프레임 구조 출력
-        const initialFrames = page.frames();
-        console.log(`[Frame Debug] 초기 로드된 프레임 개수: ${initialFrames.length}`);
-        initialFrames.forEach((f, idx) => console.log(`  - 프레임 ${idx}: ${f.url()}`));
-
-        // 모든 프레임에서 비밀번호 입력란이 있는지 검색 (아이프레임 대비)
+        // 모든 프레임에서 비밀번호 입력란이 있는지 검색하는 헬퍼 함수
         let pwInput = null;
         let idInput = null;
         let targetFrame = page;
 
-        for (const frame of page.frames()) {
-            try {
-                const inputs = await frame.$$('input');
-                for (const input of inputs) {
-                    const type = (await frame.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
-                    if (type === 'password') {
-                        pwInput = input;
-                        targetFrame = frame;
-                        console.log(`💡 프레임(${frame.url()})에서 비밀번호 입력창을 발견했습니다.`);
-                        break;
+        const scanPasswordInput = async () => {
+            const frames = page.frames();
+            for (const frame of frames) {
+                try {
+                    const inputs = await frame.$$('input');
+                    for (const input of inputs) {
+                        const type = (await frame.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
+                        if (type === 'password') {
+                            pwInput = input;
+                            targetFrame = frame;
+                            return true;
+                        }
                     }
-                }
-            } catch (e) {}
-            if (pwInput) break;
-        }
+                } catch (e) {}
+            }
+            return false;
+        };
+
+        // 초기 스캔
+        await scanPasswordInput();
         
-        // 비밀번호 입력창이 감지되지 않은 경우 (로그인 모달이 닫혀있는 상태)
+        // 비밀번호 입력창이 감지되지 않은 경우 (로그인 모달이 안 열렸거나 로그인 수단 선택 화면 상태)
         if (!pwInput) {
-            console.log("💡 비밀번호 입력창이 발견되지 않았습니다. 로그인 모달이 닫혀있는 것으로 간주하고 로그인 버튼 클릭을 시도합니다...");
+            console.log("💡 비밀번호 입력창이 발견되지 않았습니다. 로그인 모달 열기 또는 로그인 방식 선택을 시작합니다...");
             
-            // 로그인 버튼으로 추정되는 선택자들
+            // 1단계: 먼저 로그인 모달 열기 시도 (로그인 버튼 클릭)
             const loginSelectors = [
                 '.btn-login',
                 '#login-btn',
@@ -120,28 +120,56 @@ async function run() {
                 }
             }
             
-            // 모달/입력 필드가 뜰 때까지 3초 대기
-            await new Promise(r => setTimeout(r, 3000));
+            // 모달이 뜰 때까지 2초 대기
+            await new Promise(r => setTimeout(r, 2000));
 
-            // 클릭 후 모든 프레임에서 입력 필드 재탐색
-            console.log(`[Frame Debug] 클릭 후 프레임 개수: ${page.frames().length}`);
-            for (const frame of page.frames()) {
-                try {
-                    const inputs = await frame.$$('input');
-                    for (const input of inputs) {
-                        const type = (await frame.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
-                        const placeholder = (await frame.evaluate(el => el.getAttribute('placeholder'), input) || '');
-                        console.log(`[Input Scan] 프레임(${frame.url()}) 내 input 감지: type="${type}", placeholder="${placeholder}"`);
-                        
-                        if (type === 'password') {
-                            pwInput = input;
-                            targetFrame = frame;
+            // 2단계: 로그인 수단 선택 화면(ID, 계정 추가하기 등)이 떴는지 확인 후 진입 시도
+            await scanPasswordInput();
+            
+            if (!pwInput) {
+                console.log("💡 로그인 방식 선택 화면이 감지되었습니다. 'ID' 로그인 진입을 시도합니다...");
+                let idSelectorClicked = false;
+                const elements = await page.$$('button, a, div, span, p');
+                
+                // '계정 추가하기' 먼저 탐색 (등록된 계정이 있을 때 일반 로그인 추가 버튼)
+                for (const el of elements) {
+                    try {
+                        const text = (await page.evaluate(el => el.innerText, el) || '').trim();
+                        if (text.includes('계정 추가하기') || text.includes('계정추가하기')) {
+                            console.log(`🔘 로그인 방식 선택 클릭: "${text}"`);
+                            await el.click();
+                            idSelectorClicked = true;
+                            break;
                         }
+                    } catch (e) {}
+                }
+                
+                // 'ID' 매칭 탐색 (계정 선택 리스트 중 ID 로그인 수단)
+                if (!idSelectorClicked) {
+                    for (const el of elements) {
+                        try {
+                            const text = (await page.evaluate(el => el.innerText, el) || '').trim();
+                            if (text === 'ID' || text.replace(/\s/g, '') === 'ID') {
+                                console.log(`🔘 로그인 방식 선택 클릭: "${text}"`);
+                                await el.click();
+                                idSelectorClicked = true;
+                                break;
+                            }
+                        } catch (e) {}
                     }
-                } catch (e) {
-                    console.log(`[Input Scan Error] 프레임(${frame.url()}) 스캔 실패: ${e.message}`);
+                }
+                
+                if (idSelectorClicked) {
+                    console.log("⏳ ID 로그인 화면으로 전환 대기 중...");
+                    await new Promise(r => setTimeout(r, 2000));
+                    await scanPasswordInput(); // 입력창 다시 감지
                 }
             }
+        }
+
+        // 클릭 후 최종 프레임 재스캔 (아이프레임 갱신 대비)
+        if (!pwInput) {
+            await scanPasswordInput();
         }
 
         // 아이디 필드 식별 (비밀번호 필드가 발견된 동일한 프레임에서 탐색)
@@ -163,7 +191,7 @@ async function run() {
         if (idInput && pwInput) {
             console.log(`📝 로그인 정보 입력 중... (대상 프레임: ${targetFrame.url()})`);
             
-            // 포커스 후 입력
+            // 기존 텍스트 제거하고 입력
             await idInput.click({ clickCount: 3 });
             await idInput.type(BUBEE_ID);
             
