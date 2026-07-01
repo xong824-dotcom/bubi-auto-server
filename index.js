@@ -128,15 +128,38 @@ async function run() {
             
             if (!pwInput) {
                 console.log("💡 로그인 방식 선택 화면이 감지되었습니다. 'ID' 로그인 진입을 시도합니다...");
+                
                 let idSelectorClicked = false;
                 const elements = await page.$$('button, a, div, span, p');
                 
-                // '계정 추가하기' 먼저 탐색 (등록된 계정이 있을 때 일반 로그인 추가 버튼)
+                // 디버깅용: 발견된 엘리먼트 텍스트 출력
+                console.log(`[Selector Debug] 총 ${elements.length}개의 엘리먼트를 스캔합니다.`);
                 for (const el of elements) {
                     try {
                         const text = (await page.evaluate(el => el.innerText, el) || '').trim();
-                        if (text.includes('계정 추가하기') || text.includes('계정추가하기')) {
-                            console.log(`🔘 로그인 방식 선택 클릭: "${text}"`);
+                        if (text && text.length < 50) {
+                            console.log(`  - 발견된 텍스트: "${text.replace(/\n/g, ' ')}"`);
+                        }
+                    } catch (e) {}
+                }
+
+                // ID 로그인 관련 키워드 매칭 및 클릭
+                for (const el of elements) {
+                    try {
+                        const text = (await page.evaluate(el => el.innerText, el) || '').trim();
+                        const textLower = text.toLowerCase();
+                        
+                        if (
+                            textLower === 'id' || 
+                            textLower.replace(/\s/g, '') === 'id' ||
+                            textLower.startsWith('id\n') ||
+                            textLower.startsWith('id ') ||
+                            text.includes('계정 추가하기') || 
+                            text.includes('계정추가하기') || 
+                            text.includes('아이디') || 
+                            text.includes('일반 로그인')
+                        ) {
+                            console.log(`🔘 로그인 방식 선택 클릭 매칭 성공: "${text.replace(/\n/g, ' ')}"`);
                             await el.click();
                             idSelectorClicked = true;
                             break;
@@ -144,24 +167,9 @@ async function run() {
                     } catch (e) {}
                 }
                 
-                // 'ID' 매칭 탐색 (계정 선택 리스트 중 ID 로그인 수단)
-                if (!idSelectorClicked) {
-                    for (const el of elements) {
-                        try {
-                            const text = (await page.evaluate(el => el.innerText, el) || '').trim();
-                            if (text === 'ID' || text.replace(/\s/g, '') === 'ID') {
-                                console.log(`🔘 로그인 방식 선택 클릭: "${text}"`);
-                                await el.click();
-                                idSelectorClicked = true;
-                                break;
-                            }
-                        } catch (e) {}
-                    }
-                }
-                
                 if (idSelectorClicked) {
                     console.log("⏳ ID 로그인 화면으로 전환 대기 중...");
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 2500));
                     await scanPasswordInput(); // 입력창 다시 감지
                 }
             }
