@@ -318,20 +318,35 @@ async function run() {
         await new Promise(r => setTimeout(r, 4000));
         console.log("✅ 로그인 완료!");
 
-        // 2. 라이브 방송 페이지로 이동
-        const targetUrl = `https://www.bubeelive.com/lives/play/${BUBEE_ROOM_ID}`;
-        console.log(`📺 방송국 이동: ${targetUrl}`);
+        // 방 번호 리스트 추출 (콤마로 구분된 여러 방 지원)
+        const roomIds = BUBEE_ROOM_ID.split(',').map(id => id.trim()).filter(id => id);
+        console.log(`📺 모니터링할 방송국 리스트: ${roomIds.join(', ')}`);
 
         // 유저스크립트 로드
         const userscriptPath = path.join(__dirname, 'userscript.js');
         const userscriptContent = fs.readFileSync(userscriptPath, 'utf8');
 
-        // 페이지가 로드되기 전에 유저스크립트를 자동 주입 (Tampermonkey처럼 작동)
-        await page.evaluateOnNewDocument(userscriptContent);
+        // 각 방별로 새 탭을 열어 동시에 모니터링 시작
+        for (let i = 0; i < roomIds.length; i++) {
+            const roomId = roomIds[i];
+            const targetUrl = `https://www.bubeelive.com/lives/play/${roomId}`;
+            
+            // 첫 번째 방은 로그인한 기존 page(탭)를 재사용하고, 추가 방들은 새 탭을 개설
+            const roomPage = (i === 0) ? page : await browser.newPage();
+            await roomPage.setViewport({ width: 1280, height: 720 });
+            
+            // 각 탭별 독립적인 콘솔 로깅 연동
+            roomPage.on('console', msg => console.log(`[Room ${roomId} Console] ${msg.text()}`));
+            roomPage.on('error', err => console.error(`[Room ${roomId} Error] ${err.message}`));
+            roomPage.on('pageerror', pageerr => console.error(`[Room ${roomId} Uncaught Exception] ${pageerr.message}`));
 
-        // 방송 페이지 접속
-        await page.goto(targetUrl, { waitUntil: 'networkidle2' });
-        console.log("✨ 유저스크립트 로드 완료 및 모니터링 중...");
+            // 페이지가 로드되기 전에 유저스크립트를 자동 주입 (Tampermonkey처럼 작동)
+            await roomPage.evaluateOnNewDocument(userscriptContent);
+
+            console.log(`📺 [Room ${roomId}] 방송 접속 시도 중: ${targetUrl}`);
+            await roomPage.goto(targetUrl, { waitUntil: 'networkidle2' });
+            console.log(`✨ [Room ${roomId}] 접속 완료 및 모니터링 시작!`);
+        }
 
         // 브라우저 인스턴스 유지
         await new Promise(() => {});
