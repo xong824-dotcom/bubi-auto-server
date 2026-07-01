@@ -18,7 +18,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm ci --only=production
+# package-lock.json이 없을 때도 빌드가 되도록 npm install 사용
+RUN npm install --omit=dev
 
 COPY . .
 
