@@ -31,6 +31,9 @@ async function run() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
 
+    // 활성 페이지 포인터 (팝업창이 열릴 경우를 대비해 동적으로 변환)
+    let activePage = page;
+
     // 브라우저의 console.log를 서버 콘솔로 출력
     page.on('console', msg => {
         console.log(`[Browser Console] ${msg.text()}`);
@@ -42,6 +45,27 @@ async function run() {
 
     page.on('pageerror', pageerr => {
         console.error(`[Page Uncaught Exception] ${pageerr.message}`);
+    });
+
+    // 새 탭/팝업창(window.open) 감지 및 연동 핸들러
+    browser.on('targetcreated', async target => {
+        if (target.type() === 'page') {
+            try {
+                const newPage = await target.page();
+                console.log(`💡 [Popup Info] 새 팝업/탭 감지됨: ${newPage.url()}`);
+                activePage = newPage;
+                
+                newPage.on('console', msg => {
+                    console.log(`[Popup Console] ${msg.text()}`);
+                });
+                
+                newPage.on('error', err => {
+                    console.error(`[Popup Page Error] ${err.message}`);
+                });
+            } catch (e) {
+                console.log(`[Popup Warning] 팝업창 연동 실패: ${e.message}`);
+            }
+        }
     });
 
     try {
@@ -58,7 +82,7 @@ async function run() {
         let targetFrame = page;
 
         const scanPasswordInput = async () => {
-            const frames = page.frames();
+            const frames = activePage.frames();
             for (const frame of frames) {
                 try {
                     const inputs = await frame.$$('input');
@@ -168,14 +192,14 @@ async function run() {
                 }
                 
                 if (idSelectorClicked) {
-                    console.log("⏳ ID 로그인 화면으로 전환 대기 중...");
-                    await new Promise(r => setTimeout(r, 2500));
+                    console.log("⏳ ID 로그인 화면으로 전환 대기 중 (팝업창 생성 가능성 대기)...");
+                    await new Promise(r => setTimeout(r, 3000));
                     await scanPasswordInput(); // 입력창 다시 감지
                 }
             }
         }
 
-        // 클릭 후 최종 프레임 재스캔 (아이프레임 갱신 대비)
+        // 클릭 후 최종 프레임 재스캔 (아이프레임 또는 팝업창 최종 감지)
         if (!pwInput) {
             await scanPasswordInput();
         }
@@ -211,7 +235,7 @@ async function run() {
 
         // 로그인 시도
         console.log("🔘 로그인 시도...");
-        await page.keyboard.press('Enter');
+        await activePage.keyboard.press('Enter');
 
         // 1.5초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
         await new Promise(r => setTimeout(r, 1500));
@@ -222,7 +246,13 @@ async function run() {
         }
 
         // 로그인 완료 후 페이지 이동 대기
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+        if (activePage !== page) {
+            console.log("⏳ 팝업창에서 로그인 처리 중... 메인 창의 리다이렉트 대기...");
+            await new Promise(r => setTimeout(r, 5000));
+            // 메인 페이지가 로그인된 상태로 동기화될 때까지 대기
+        } else {
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+        }
         console.log("✅ 로그인 완료!");
 
         // 2. 라이브 방송 페이지로 이동
