@@ -76,7 +76,7 @@ async function run() {
         // 페이지가 완전히 로딩되도록 대기
         await new Promise(r => setTimeout(r, 2000));
 
-        // 모든 프레임에서 비밀번호 입력란이 있는지 검색하는 헬퍼 함수
+        // 모든 프레임에서 비밀번호 입력란이 있는지 검색하는 헬퍼 함수 (오직 화면에 보이는 활성 입력란만 스캔)
         let pwInput = null;
         let idInput = null;
         let targetFrame = page;
@@ -87,6 +87,14 @@ async function run() {
                 try {
                     const inputs = await frame.$$('input');
                     for (const input of inputs) {
+                        // 가시성 검사 (display: none이거나 크기가 0인 숨겨진 input 제외)
+                        const visible = await frame.evaluate(el => {
+                            const style = window.getComputedStyle(el);
+                            return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0 && el.offsetHeight > 0;
+                        }, input);
+                        
+                        if (!visible) continue;
+
                         const type = (await frame.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
                         if (type === 'password') {
                             pwInput = input;
@@ -204,10 +212,18 @@ async function run() {
             await scanPasswordInput();
         }
 
-        // 아이디 필드 식별 (비밀번호 필드가 발견된 동일한 프레임에서 탐색)
+        // 아이디 필드 식별 (비밀번호 필드가 발견된 동일한 프레임에서 보이는 텍스트 입력창 탐색)
         if (pwInput) {
             const inputs = await targetFrame.$$('input');
             for (const input of inputs) {
+                // 가시성 검사
+                const visible = await targetFrame.evaluate(el => {
+                    const style = window.getComputedStyle(el);
+                    return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0 && el.offsetHeight > 0;
+                }, input);
+                
+                if (!visible) continue;
+
                 const type = (await targetFrame.evaluate(el => el.getAttribute('type'), input) || '').toLowerCase();
                 const placeholder = (await targetFrame.evaluate(el => el.getAttribute('placeholder'), input) || '');
                 if (type === 'text' || type === 'email' || type === 'tel' || type === 'number' || type === '') {
@@ -217,17 +233,40 @@ async function run() {
                     }
                 }
             }
-            if (!idInput && inputs.length > 0) idInput = inputs[0];
+            
+            // 가시성이 보장되는 첫 번째 입력필드를 아이디로 최종 매핑 (대체재)
+            if (!idInput) {
+                for (const input of inputs) {
+                    const visible = await targetFrame.evaluate(el => {
+                        const style = window.getComputedStyle(el);
+                        return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0 && el.offsetHeight > 0;
+                    }, input);
+                    if (visible) {
+                        idInput = input;
+                        break;
+                    }
+                }
+            }
         }
 
         if (idInput && pwInput) {
             console.log(`📝 로그인 정보 입력 중... (대상 프레임: ${targetFrame.url()})`);
             
-            // 기존 텍스트 제거하고 입력
-            await idInput.click({ clickCount: 3 });
+            // click() 실패 시 focus() 처리로 예외 복구
+            try {
+                await idInput.click({ clickCount: 3 });
+            } catch (e) {
+                console.log("⚠️ idInput 클릭 실패, 포커스로 대체 진행합니다.");
+                await idInput.focus();
+            }
             await idInput.type(BUBEE_ID);
             
-            await pwInput.click({ clickCount: 3 });
+            try {
+                await pwInput.click({ clickCount: 3 });
+            } catch (e) {
+                console.log("⚠️ pwInput 클릭 실패, 포커스로 대체 진행합니다.");
+                await pwInput.focus();
+            }
             await pwInput.type(BUBEE_PW);
         } else {
             throw new Error(`로그인 입력 필드를 식별할 수 없습니다. (비밀번호 감지: ${pwInput ? 'O' : 'X'}, 아이디 감지: ${idInput ? 'O' : 'X'})`);
