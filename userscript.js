@@ -673,7 +673,7 @@
     let supportObserver = null;
 
     function startChatObserver() {
-        const chatWrap = document.querySelector('.chat-wrap');
+        const chatWrap = document.querySelector('.chat-area') || document.querySelector('.chat-wrap');
         const supportArea = document.querySelector('.recently-support');
 
         if (chatWrap && !chatObserver) {
