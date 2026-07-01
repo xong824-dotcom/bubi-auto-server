@@ -129,6 +129,7 @@
     const msgQueue = [];
     let lastSentTime = 0;
     const recentBotMessages = new Set(); 
+    let agePopupClicked = false;
 
     function queueMessage(text) {
         if (!text) return;
@@ -628,6 +629,38 @@
     }
 
     /* ================================================================
+       9-5. 19세 성인인증 및 경고 팝업 우회 처리
+    ================================================================ */
+    const handleAgePopup = () => {
+        if (agePopupClicked) return;
+        const popup = document.querySelector(
+            'button[class*="age"], button[class*="adult"], ' +
+            'button[class*="confirm"], button[class*="agree"]'
+        );
+        if (!popup) {
+            const btns = [...document.querySelectorAll('button')];
+            const ageBtn = btns.find(b =>
+                b.innerText.includes('19세') || b.innerText.includes('성인') ||
+                (b.innerText.includes('확인') && b.closest('[class*="modal"],[class*="popup"],[class*="overlay"]'))
+            );
+            if (ageBtn) {
+                agePopupClicked = true;
+                ageBtn.click();
+                console.log('[19세팝업] 연령 확인 버튼 클릭 완료 (1회)');
+            }
+        } else {
+            agePopupClicked = true;
+            popup.click();
+            console.log('[19세팝업] 연령 확인 버튼 클릭 완료 (1회)');
+        }
+    };
+    // 3초마다 팝업 체크 (최초 1회 클릭 후 자동 중단)
+    const ageCheckInterval = setInterval(() => {
+        if (agePopupClicked) { clearInterval(ageCheckInterval); return; }
+        handleAgePopup();
+    }, 3000);
+
+    /* ================================================================
        10. 실시간 DOM 감시 (MutationObserver)
     ================================================================ */
     let chatObserver = null;
@@ -643,9 +676,10 @@
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
 
-                        if (node.classList.contains('msg-item')) {
-                            const nameEl = node.querySelector('.user-name');
-                            const txtEl = node.querySelector('.msg-txt');
+                        const msgItem = node.classList?.contains('msg-item') ? node : (node.querySelector?.('.msg-item'));
+                        if (msgItem) {
+                            const nameEl = msgItem.querySelector('.user-name');
+                            const txtEl = msgItem.querySelector('.msg-txt');
 
                             if (nameEl && txtEl) {
                                 const nick = nameEl.innerText.trim();
