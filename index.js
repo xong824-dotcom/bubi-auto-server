@@ -45,14 +45,60 @@ async function run() {
     });
 
     try {
-        // 1. 로그인 페이지 접속
+        // 1. 로그인 페이지 또는 메인 페이지 접속
         console.log("🔑 로그인 페이지로 이동 중...");
         await page.goto('https://www.bubeelive.com/login', { waitUntil: 'networkidle2' });
 
-        // 페이지 내의 input 태그가 나타날 때까지 대기
-        await page.waitForSelector('input', { timeout: 30000 });
+        // 페이지가 완전히 로딩되도록 대기
+        await new Promise(r => setTimeout(r, 2000));
+
+        let inputs = await page.$$('input');
         
-        const inputs = await page.$$('input');
+        // 입력 필드가 발견되지 않았을 경우 (메인 페이지로 튕겼거나 로그인 버튼을 눌러 모달을 띄워야 하는 경우)
+        if (inputs.length === 0) {
+            console.log("💡 입력창이 발견되지 않았습니다. 로그인 버튼 클릭을 시도합니다...");
+            
+            // 로그인 버튼으로 추정되는 선택자들
+            const loginSelectors = [
+                '.btn-login',
+                '#login-btn',
+                'button.login',
+                'a.login',
+                '[data-testid="login-button"]'
+            ];
+            
+            let clicked = false;
+            for (const selector of loginSelectors) {
+                try {
+                    const btn = await page.$(selector);
+                    if (btn) {
+                        console.log(`🔘 로그인 버튼 발견 (${selector}), 클릭합니다.`);
+                        await btn.click();
+                        clicked = true;
+                        break;
+                    }
+                } catch (e) {}
+            }
+            
+            if (!clicked) {
+                // 엘리먼트 텍스트 매칭으로 '로그인' 버튼 탐색
+                const elements = await page.$$('button, a, div, span');
+                for (const el of elements) {
+                    const text = (await page.evaluate(el => el.innerText, el) || '').trim();
+                    if (text === '로그인' || text.includes('로그인')) {
+                        console.log("🔘 텍스트 매칭으로 로그인 버튼 발견, 클릭합니다.");
+                        await el.click();
+                        clicked = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 모달/입력 필드가 뜰 때까지 2초 대기
+            await new Promise(r => setTimeout(r, 2000));
+            inputs = await page.$$('input');
+        }
+
         console.log(`[Input Info] 페이지에서 총 ${inputs.length}개의 input 요소를 감지했습니다.`);
         
         let idInput = null;
@@ -91,9 +137,17 @@ async function run() {
             throw new Error(`로그인 입력 필드를 식별할 수 없습니다. (검색된 input 개수: ${inputs.length})`);
         }
 
-        // 로그인 시도 (엔터 입력)
+        // 로그인 시도
         console.log("🔘 로그인 시도...");
         await page.keyboard.press('Enter');
+
+        // 1초 대기 후 서브밋 버튼이 별도로 있는 경우 클릭 시도 (보조)
+        await new Promise(r => setTimeout(r, 1000));
+        const submitBtn = await page.$('button[type="submit"], button.btn-submit, .btn-login-submit');
+        if (submitBtn) {
+            console.log("🔘 로그인 전송 버튼 클릭...");
+            await submitBtn.click();
+        }
 
         // 로그인 완료 후 페이지 이동 대기
         await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
