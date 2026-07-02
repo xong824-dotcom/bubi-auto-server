@@ -377,6 +377,47 @@
         }
     }
 
+    function handleEffectSupport(node) {
+        try {
+            const nickEl = node.querySelector('.nick');
+            const honeyEl = node.querySelector('.ic-honey');
+            if (!nickEl || !honeyEl) return;
+
+            const nick = nickEl.innerText.trim();
+            const honeyText = honeyEl.innerText.trim();
+            
+            const amount = parseInt(honeyText.replace(/[^0-9]/g, '')) || 0;
+            if (!amount) return;
+
+            const txId = `merge_${nick}_${amount}_${Math.floor(Date.now() / 3000)}`;
+            if (lastSupportId === txId) return;
+            lastSupportId = txId;
+
+            logStatus(`[대형 후원 감지] ${nick} - ${honeyText}`);
+
+            const minGift = DB.settings.minGift || 300;
+            if (amount >= minGift) {
+                queueMessage(`💎💎 [VIP후원] ${nick}님 ${amount}개 후원 너무 감사합니다!! 압도적 감사!! 💎💎`);
+            } else {
+                queueMessage(`💖 ${nick}님 ${amount}개 후원 너무 감사합니다! 윙쿠♥❤️`);
+            }
+
+            const today = getToday();
+            if (!DB.receivedGifts) DB.receivedGifts = {};
+            if (!DB.receivedGifts[today]) DB.receivedGifts[today] = {};
+            DB.receivedGifts[today]['스티커후원'] = (DB.receivedGifts[today]['스티커후원'] || 0) + amount;
+
+            if (!DB.userGifts) DB.userGifts = {};
+            if (!DB.userGifts[today]) DB.userGifts[today] = {};
+            DB.userGifts[today][nick] = (DB.userGifts[today][nick] || 0) + amount;
+
+            saveDB();
+
+        } catch (e) {
+            console.error('[부비라이브 헬퍼] 대형 후원 파싱 오류:', e);
+        }
+    }
+
     function recordChatRanking(userId, nick) {
         const today = getToday();
         const month = getMonth();
@@ -771,7 +812,31 @@
         }
     }
 
-    setTimeout(startChatObserver, 3000);
+    let effectObserver = null;
+    function startEffectObserver() {
+        if (!effectObserver) {
+            effectObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType !== 1) return;
+
+                        if (node.id === 'effect-area-merge' || node.classList.contains('effect-area-merge')) {
+                            handleEffectSupport(node);
+                        } else if (node.querySelector && node.querySelector('.effect-area-merge')) {
+                            handleEffectSupport(node.querySelector('.effect-area-merge'));
+                        }
+                    });
+                });
+            });
+            effectObserver.observe(document.body, { childList: true, subtree: true });
+            logStatus("[시스템] 대형 이펙트 후원 감시 시작.");
+        }
+    }
+
+    setTimeout(() => {
+        startChatObserver();
+        startEffectObserver();
+    }, 3000);
 
     /* ================================================================
        11. GUI 컨트롤 패널 (유리모핑 다크 테마 디자인)
