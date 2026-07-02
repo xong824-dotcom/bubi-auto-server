@@ -354,6 +354,9 @@ async function run() {
         const userscriptPath = path.join(__dirname, 'userscript.js');
         const userscriptContent = fs.readFileSync(userscriptPath, 'utf8');
 
+        // 각 방의 페이지(탭) 객체 상태를 저장할 맵
+        const roomStatus = {};
+
         // 각 방별로 새 탭을 열어 동시에 모니터링 시작
         for (let i = 0; i < roomIds.length; i++) {
             const roomId = roomIds[i];
@@ -374,7 +377,64 @@ async function run() {
             console.log(`📺 [Room ${roomId}] 방송 접속 시도 중: ${targetUrl}`);
             await roomPage.goto(targetUrl, { waitUntil: 'networkidle2' });
             console.log(`✨ [Room ${roomId}] 접속 완료 및 모니터링 시작!`);
+
+            roomStatus[roomId] = { page: roomPage, url: targetUrl, isOffline: false };
         }
+
+        // [추가 기능] 방종 감지 및 방송 시작 자동 재입장 (1분 간격 폴링)
+        setInterval(async () => {
+            for (const roomId of roomIds) {
+                const room = roomStatus[roomId];
+                if (!room) continue;
+
+                try {
+                    if (!room.isOffline) {
+                        // 1. 현재 방송 중인 경우 -> 방송이 종료(방종)되었는지 체크
+                        const isEnded = await room.page.evaluate(() => {
+                            const text = document.body.innerText || '';
+                            // 플랫폼에 따라 다를 수 있으나, 일반적으로 출력되는 텍스트를 기반으로 감지
+                            return text.includes('방송이 종료') || 
+                                   text.includes('방송 종료') ||
+                                   text.includes('오프라인 상태입니다') ||
+                                   text.includes('종료된 방송');
+                        });
+
+                        if (isEnded) {
+                            console.log(`\n💤 [Room ${roomId}] 방종(방송 종료) 감지됨! 방에서 퇴장하여 대기 모드로 전환합니다.`);
+                            room.isOffline = true;
+                            // 빈 페이지(about:blank)로 이동하여 채팅방에서 완전히 빠져나오고 시스템 리소스 확보
+                            await room.page.goto('about:blank');
+                        }
+                    } else {
+                        // 2. 대기 모드(방종 상태)인 경우 -> 방송이 다시 켜졌는지 찔러보기
+                        console.log(`⏳ [Room ${roomId}] 방송 재시작 여부를 확인합니다...`);
+                        await room.page.goto(room.url, { waitUntil: 'domcontentloaded' });
+                        
+                        // 화면이 대략적으로 로드되어 텍스트가 표시될 때까지 3초 대기
+                        await new Promise(r => setTimeout(r, 3000));
+                        
+                        const stillEnded = await room.page.evaluate(() => {
+                            const text = document.body.innerText || '';
+                            return text.includes('방송이 종료') || 
+                                   text.includes('방송 종료') ||
+                                   text.includes('오프라인 상태입니다') ||
+                                   text.includes('종료된 방송');
+                        });
+
+                        if (stillEnded) {
+                            // 아직도 방종 상태이면 다시 리소스 확보를 위해 퇴장
+                            await room.page.goto('about:blank');
+                        } else {
+                            // 다시 방송이 시작됨!
+                            console.log(`🎉 [Room ${roomId}] 방송이 다시 시작되었습니다! 봇이 자동으로 채팅방에 재입장했습니다!`);
+                            room.isOffline = false;
+                        }
+                    }
+                } catch (err) {
+                    console.error(`[Room ${roomId} 모니터링 오류] ${err.message}`);
+                }
+            }
+        }, 60 * 1000); // 1분 주기 (60000ms)
 
         // 브라우저 인스턴스 유지
         await new Promise(() => {});
