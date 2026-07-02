@@ -259,6 +259,7 @@
             Object.entries(DB.attendance[month]).forEach(([uid, data]) => {
                 if (data.lastDate === today) {
                     todayChecked.add(uid);
+                    if (data.nick) todayChecked.add(data.nick);
                 }
             });
         }
@@ -279,16 +280,28 @@
         const yesterday = getYesterday();
         const month = getMonth();
 
-        // 현재 방(탭)에서 이미 인사를 건넸는지 확인 (같은 방 안에서의 중복 인사 철저히 차단)
-        if (todayChecked.has(userId) || attendanceInProgress.has(userId)) return;
+        // 현재 방(탭)에서 이미 인사를 건넸는지 확인 (닉네임 기반으로도 교차 검증)
+        if (todayChecked.has(userId) || todayChecked.has(nick) || attendanceInProgress.has(userId) || attendanceInProgress.has(nick)) return;
         attendanceInProgress.add(userId);
+        attendanceInProgress.add(nick);
 
         try {
             if (!DB.attendance[month]) DB.attendance[month] = {};
-            const existing = DB.attendance[month][userId];
+            
+            // 고유 ID가 다를 경우를 대비해 닉네임으로 기존 기록 찾기
+            let existingKey = userId;
+            let existing = DB.attendance[month][userId];
+            if (!existing) {
+                const foundEntry = Object.entries(DB.attendance[month]).find(([k, v]) => v.nick === nick);
+                if (foundEntry) {
+                    existingKey = foundEntry[0];
+                    existing = foundEntry[1];
+                }
+            }
 
             if (existing && existing.lastDate === today) {
-                todayChecked.add(userId);
+                todayChecked.add(existingKey);
+                todayChecked.add(nick);
                 return;
             }
 
@@ -298,8 +311,9 @@
             rec.consecutive = (rec.lastDate === yesterday) ? (rec.consecutive || 0) + 1 : 1;
             rec.lastDate = today;
 
-            DB.attendance[month][userId] = rec;
-            todayChecked.add(userId);
+            DB.attendance[month][existingKey] = rec;
+            todayChecked.add(existingKey);
+            todayChecked.add(nick);
             saveDB();
 
             let allTimeTotal = 0;
