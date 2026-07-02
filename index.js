@@ -36,7 +36,9 @@ async function run() {
 
     // 브라우저의 console.log를 서버 콘솔로 출력
     page.on('console', msg => {
-        console.log(`[Browser Console] ${msg.text()}`);
+        const text = msg.text();
+        if (text.includes('WebGL') || text.includes('GL Driver') || text.includes('queueSerial') || text.includes('GPU stall')) return;
+        console.log(`[Browser Console] ${text}`);
     });
 
     page.on('error', err => {
@@ -56,7 +58,9 @@ async function run() {
                 activePage = newPage;
                 
                 newPage.on('console', msg => {
-                    console.log(`[Popup Console] ${msg.text()}`);
+                    const text = msg.text();
+                    if (text.includes('WebGL') || text.includes('GL Driver') || text.includes('queueSerial') || text.includes('GPU stall')) return;
+                    console.log(`[Popup Console] ${text}`);
                 });
                 
                 newPage.on('error', err => {
@@ -367,7 +371,11 @@ async function run() {
             await roomPage.setViewport({ width: 1280, height: 720 });
             
             // 각 탭별 독립적인 콘솔 로깅 연동
-            roomPage.on('console', msg => console.log(`[Room ${roomId} Console] ${msg.text()}`));
+            roomPage.on('console', msg => {
+                const text = msg.text();
+                if (text.includes('WebGL') || text.includes('GL Driver') || text.includes('queueSerial') || text.includes('GPU stall')) return;
+                console.log(`[Room ${roomId} Console] ${text}`);
+            });
             roomPage.on('error', err => console.error(`[Room ${roomId} Error] ${err.message}`));
             roomPage.on('pageerror', pageerr => console.error(`[Room ${roomId} Uncaught Exception] ${pageerr.message}`));
 

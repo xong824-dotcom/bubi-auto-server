@@ -419,7 +419,7 @@
 
         if (cmd === '!명령어' || cmd === '!도움말') {
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션추가 / !미션삭제 / !미션초기화 / !킵 / !킵삭제\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             } else {
                 queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             }
@@ -497,63 +497,42 @@
                 queueMessage(`❌ 등록된 프로필이 없습니다. '!프로필등록 [내용]' 명령어로 먼저 등록해주세요!`);
             }
         }
-        // ================= [ 미션 조회 ] =================
+        // ================= [ 미션 조회 (한 번에 전송) ] =================
         else if (cmd === '!미션') {
-            const missions = DB.missions || [];
-            if (missions.length > 0) {
-                let msg = `📜 [진행 중인 미션]\n`;
-                missions.forEach((mission, idx) => {
-                    msg += `${idx + 1}. ${mission}\n`;
+            const missionText = DB.settings.bjMissionText;
+            if (missionText && missionText.trim() !== '') {
+                const rawLines = missionText.split(/\\n|\n/);
+                let finalLines = [];
+
+                rawLines.forEach(rawLine => {
+                    const lineStr = rawLine.trim();
+                    if (!lineStr) return;
+                    
+                    const wrappedLines = autoWordWrap(lineStr, 40); 
+                    finalLines.push(...wrappedLines);
                 });
-                queueMessage(msg.trim());
+
+                const fullMsg = `📜 [미션 목록]\n` + finalLines.join('\n');
+                queueMessage(fullMsg);
             } else {
-                queueMessage(`📢 [진행 중인 미션] 현재 진행 중인 미션이 없습니다.`);
+                queueMessage(`❌ 등록된 미션이 없습니다. '!미션등록 [내용]' 명령어로 먼저 등록해주세요!`);
             }
         }
-        // ================= [ 미션 추가 (호스트/매니저 전용) ] =================
-        else if (cmd === '!미션추가' || cmd === '!미션등록') {
+        // ================= [ 미션 등록 (호스트/매니저 전용) ] =================
+        else if (cmd === '!미션등록') {
             if (!isHostOrManager) {
-                queueMessage(`❌ 미션 추가는 호스트와 매니저만 가능합니다.`);
+                queueMessage(`❌ 미션 등록은 호스트와 매니저만 가능합니다.`);
                 return;
             }
-            const content = text.replace(/^!(미션추가|미션등록)\s*/i, '').trim();
+            const content = text.replace(/^!미션등록\s*/i, '').trim();
             if (content) {
-                if (!DB.missions) DB.missions = [];
-                DB.missions.push(content);
+                DB.settings.bjMissionText = content;
                 saveDB();
-                queueMessage(`✅ 미션이 추가되었습니다! (번호: ${DB.missions.length})`);
-                logStatus(`[미션 추가] ${content}`);
+                queueMessage(`✅ 미션 목록이 성공적으로 등록되었습니다!`);
+                logStatus(`[미션 등록] 텍스트 내용 업데이트 됨`);
             } else {
-                queueMessage(`❌ 추가할 미션 내용을 함께 적어주세요! (예: !미션추가 리액션 3개 성공하기)`);
+                queueMessage(`❌ 등록할 미션 내용을 뒤에 함께 적어주세요! (예: !미션등록 1. 춤추기 2. 노래하기)`);
             }
-        }
-        // ================= [ 미션 삭제 (호스트/매니저 전용) ] =================
-        else if (cmd === '!미션삭제') {
-            if (!isHostOrManager) {
-                queueMessage(`❌ 미션 삭제는 호스트와 매니저만 가능합니다.`);
-                return;
-            }
-            const arg = text.replace(/^!미션삭제\s*/i, '').trim();
-            const idx = parseInt(arg) - 1;
-            if (!isNaN(idx) && DB.missions && DB.missions[idx] !== undefined) {
-                const removed = DB.missions.splice(idx, 1);
-                saveDB();
-                queueMessage(`✅ [${idx + 1}번] 미션 "${removed}" 이(가) 삭제되었습니다.`);
-                logStatus(`[미션 삭제] ${removed}`);
-            } else {
-                queueMessage(`❌ 삭제할 미션 번호를 적어주세요! (예: !미션삭제 1)`);
-            }
-        }
-        // ================= [ 미션 초기화 (호스트/매니저 전용) ] =================
-        else if (cmd === '!미션초기화') {
-            if (!isHostOrManager) {
-                queueMessage(`❌ 미션 초기화는 호스트와 매니저만 가능합니다.`);
-                return;
-            }
-            DB.missions = [];
-            saveDB();
-            queueMessage(`✅ 모든 미션이 초기화되었습니다.`);
-            logStatus(`[미션 초기화] 모든 미션 삭제됨`);
         }
         // ================= [ 킵 메모 기능 (호스트/매니저 전용) ] =================
         else if (cmd === '!킵' || cmd === '!메모') {
