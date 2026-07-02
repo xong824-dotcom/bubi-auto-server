@@ -331,6 +331,18 @@
        8. 실시간 후원 감지 및 채팅 순위 집계
     ================================================================ */
     let lastSupportId = "";
+    const recentDonations = {};
+
+    function isDuplicateDonation(nick, amount) {
+        const key = `${nick}_${amount}`;
+        const now = Date.now();
+        if (recentDonations[key] && (now - recentDonations[key] < 3000)) {
+            // 3초 이내에 똑같은 닉네임이 똑같은 금액을 후원한 것으로 감지되면(작은 배너와 큰 배너 동시 인식 등) 하나는 무시합니다.
+            return true;
+        }
+        recentDonations[key] = now;
+        return false;
+    }
 
     function handleBubiSupport(node) {
         try {
@@ -341,16 +353,18 @@
             const nick = userNameEl.innerText.trim();
             const summaryText = summaryEl.innerText.trim(); 
             
+            const lowerSummary = summaryText.toLowerCase();
+            if (lowerSummary.includes('k') || lowerSummary.includes('m')) {
+                // "1.1k..." 처럼 단위가 붙어 축약된 경우 숫자 파싱 오류(11)가 발생하므로, 
+                // 정확한 개수를 띄워주는 대형 이펙트(effect-area-merge) 로직에 처리를 위임하고 여기선 무시합니다.
+                return;
+            }
+
             const amount = parseInt(summaryText.replace(/[^0-9]/g, '')) || 0;
             if (!amount) return;
 
-            const effectImg = node.querySelector('.effect-img img');
-            const effectUrl = effectImg ? (effectImg.src || effectImg.getAttribute('data-src') || '') : '';
-            
-            const effectFile = effectUrl.split('/').pop() || 'no_effect';
-            const txId = `${nick}_${amount}_${effectFile}_${Math.floor(Date.now() / 3000)}`;
-            if (lastSupportId === txId) return;
-            lastSupportId = txId;
+            // 중복 알림 방지
+            if (isDuplicateDonation(nick, amount)) return;
 
             logStatus(`[후원 감지] ${nick} - ${summaryText}`);
 
@@ -389,9 +403,8 @@
             const amount = parseInt(honeyText.replace(/[^0-9]/g, '')) || 0;
             if (!amount) return;
 
-            const txId = `merge_${nick}_${amount}_${Math.floor(Date.now() / 3000)}`;
-            if (lastSupportId === txId) return;
-            lastSupportId = txId;
+            // 중복 알림 방지
+            if (isDuplicateDonation(nick, amount)) return;
 
             logStatus(`[대형 후원 감지] ${nick} - ${honeyText}`);
 
@@ -820,10 +833,12 @@
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
 
-                        if (node.id === 'effect-area-merge' || node.classList.contains('effect-area-merge')) {
-                            handleEffectSupport(node);
-                        } else if (node.querySelector && node.querySelector('.effect-area-merge')) {
-                            handleEffectSupport(node.querySelector('.effect-area-merge'));
+                        // 실제 동적으로 추가되는 것은 effect-area-merge 자체가 아니라 그 내부의 배너 요소들입니다.
+                        const honeyEl = node.classList.contains('ic-honey') ? node : (node.querySelector && node.querySelector('.ic-honey'));
+                        if (honeyEl) {
+                            // 배너 정보를 담고 있는 최상위 노드 추출
+                            const rootNode = honeyEl.closest ? (honeyEl.closest('.normal-display-board') || honeyEl.closest('.effect-area-merge') || node) : node;
+                            handleEffectSupport(rootNode);
                         }
                     });
                 });
