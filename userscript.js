@@ -25,7 +25,9 @@
     /* ================================================================
        1. 데이터베이스 및 로컬 스토리지 관리
     ================================================================ */
-    const STORAGE_KEY = 'bubi_helper_db';
+    const roomIdMatch = window.location.href.match(/\/play\/([a-zA-Z0-9_]+)/);
+    const CURRENT_ROOM_ID = roomIdMatch ? roomIdMatch[1] : 'global';
+    const STORAGE_KEY = 'bubi_helper_db_' + CURRENT_ROOM_ID;
     let DB = {
         settings: {
             autoWelcome: true,
@@ -263,12 +265,21 @@
     }
     initTodayChecked();
 
+    function isBotName(nick) {
+        if (!nick) return false;
+        // 사용자의 요청대로 오직 '매크로봇' 이 포함된 닉네임만 무시합니다.
+        return nick.includes('매크로봇');
+    }
+
     function processAttendance(userId, nick, isHot = false, isVIP = false) {
         if (!DB.settings.autoAttendance) return;
+        if (isBotName(nick)) return; // 매크로봇 무시
+
         const today = getToday();
         const yesterday = getYesterday();
         const month = getMonth();
 
+        // 현재 방(탭)에서 이미 인사를 건넸는지 확인 (같은 방 안에서의 중복 인사 철저히 차단)
         if (todayChecked.has(userId) || attendanceInProgress.has(userId)) return;
         attendanceInProgress.add(userId);
 
@@ -684,6 +695,9 @@
                                 const isVIP = node.classList.contains('vip-diamond') || node.innerHTML.includes('diamond');
                                 const isHot = node.classList.contains('vip-hot') || node.innerHTML.includes('hot');
 
+                                // 매크로봇 채팅은 완전히 무시
+                                if (isBotName(nick)) return;
+
                                 processAttendance(userId, nick, isHot, isVIP);
 
                                 if (!recentBotMessages.has(msg)) {
@@ -710,6 +724,8 @@
                             const txtEl = node.querySelector('.msg-txt') || node.querySelector('p');
                             if (nameEl && txtEl && (txtEl.innerText.includes('참여') || txtEl.innerText.includes('입장'))) {
                                 const nick = nameEl.innerText.trim();
+                                if (isBotName(nick)) return; // 매크로봇 입장 무시
+
                                 let userId = getUserIdFromVue(node) || nick;
                                 logStatus(`[입장 감지] ${nick}님이 방송에 입장하셨습니다.`);
                                 processAttendance(userId, nick, false, false);
