@@ -272,7 +272,7 @@
         return nick.includes('매크로봇');
     }
 
-    function processAttendance(userId, nick, isHot = false, isVIP = false) {
+    function processAttendance(userId, nick, isHot = false, isVIP = false, isSilent = false) {
         if (!DB.settings.autoAttendance) return;
         if (isBotName(nick)) return; // 매크로봇 무시
 
@@ -323,16 +323,20 @@
                 }
             });
 
-            if (isVIP && DB.settings.welcomeMsgVIP) {
-                queueMessage(`💎 [다이아] ${nick}님, ${DB.settings.welcomeMsgVIP}`);
-            } else if (isHot && DB.settings.welcomeMsgHot) {
-                queueMessage(`🔥 [열혈] ${nick}님, ${DB.settings.welcomeMsgHot}`);
-            } else if (DB.settings.autoWelcome && DB.settings.welcomeMsgNormal) {
-                queueMessage(`👋 ${nick}님, ${DB.settings.welcomeMsgNormal}`);
-            }
+            if (!isSilent) {
+                if (isVIP && DB.settings.welcomeMsgVIP) {
+                    queueMessage(`💎 [다이아] ${nick}님, ${DB.settings.welcomeMsgVIP}`);
+                } else if (isHot && DB.settings.welcomeMsgHot) {
+                    queueMessage(`🔥 [열혈] ${nick}님, ${DB.settings.welcomeMsgHot}`);
+                } else if (DB.settings.autoWelcome && DB.settings.welcomeMsgNormal) {
+                    queueMessage(`👋 ${nick}님, ${DB.settings.welcomeMsgNormal}`);
+                }
 
-            queueMessage(`✅ [출석] ${nick}님 출석 완료! (연속 ${rec.consecutive}일 / 이달 ${rec.total}일 / 누적 ${allTimeTotal}일)`);
-            logStatus(`[출석 체크] ${nick} (누적: ${allTimeTotal}일)`);
+                queueMessage(`✅ [출석] ${nick}님 출석 완료! (연속 ${rec.consecutive}일 / 이달 ${rec.total}일 / 누적 ${allTimeTotal}일)`);
+                logStatus(`[출석 체크] ${nick} (누적: ${allTimeTotal}일)`);
+            } else {
+                logStatus(`[과거 내역 조용히 등록] ${nick}`);
+            }
 
         } catch (e) {
             console.error('[부비라이브 헬퍼] 출석체크 오류:', e);
@@ -749,6 +753,9 @@
                                 const nick = nameEl.innerText.trim();
                                 const msg = txtEl.innerText.trim();
 
+                                // 매크로 봇이 켜진 직후 렌더링되는 과거 채팅 내역은 조용히 DB에 등록만 합니다.
+                                const isSilent = (Date.now() - START_MS < 10000);
+
                                 let userId = getUserIdFromVue(node);
                                 if (!userId) {
                                     const imgEl = node.querySelector('figure.user-frame-img img');
@@ -766,7 +773,10 @@
                                 // 매크로봇 채팅은 완전히 무시
                                 if (isBotName(nick)) return;
 
-                                processAttendance(userId, nick, isHot, isVIP);
+                                processAttendance(userId, nick, isHot, isVIP, isSilent);
+
+                                // 과거 내역의 경우 명령어 및 순위 집계는 수행하지 않습니다.
+                                if (isSilent) return;
 
                                 if (!recentBotMessages.has(msg)) {
                                     recordChatRanking(userId, nick);
@@ -791,12 +801,15 @@
                             const nameEl = node.querySelector('.user-name');
                             const txtEl = node.querySelector('.msg-txt') || node.querySelector('p');
                             if (nameEl && txtEl && (txtEl.innerText.includes('참여') || txtEl.innerText.includes('입장'))) {
+                                // 매크로 봇이 켜진 직후 렌더링되는 과거 입장 내역은 조용히 DB에 등록만 합니다.
+                                const isSilent = (Date.now() - START_MS < 10000);
+
                                 const nick = nameEl.innerText.trim();
                                 if (isBotName(nick)) return; // 매크로봇 입장 무시
 
                                 let userId = getUserIdFromVue(node) || nick;
-                                logStatus(`[입장 감지] ${nick}님이 방송에 입장하셨습니다.`);
-                                processAttendance(userId, nick, false, false);
+                                if (!isSilent) logStatus(`[입장 감지] ${nick}님이 방송에 입장하셨습니다.`);
+                                processAttendance(userId, nick, false, false, isSilent);
                             }
                         }
 
