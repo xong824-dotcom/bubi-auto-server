@@ -51,6 +51,7 @@
     };
 
     function loadDB() {
+        if (window.location.href === 'about:blank' || window.location.origin === 'null') return;
         try {
             const data = localStorage.getItem(STORAGE_KEY);
             if (data) {
@@ -79,8 +80,6 @@
             console.error('[부비라이브 헬퍼] 로컬 데이터 저장 오류:', e);
         }
     }
-
-    loadDB();
 
     /* ================================================================
        2. 날짜 유틸리티 (한국 표준시 KST 기준)
@@ -264,7 +263,6 @@
             });
         }
     }
-    initTodayChecked();
 
     function isBotName(nick) {
         if (!nick) return false;
@@ -875,11 +873,6 @@
         }
     }
 
-    setTimeout(() => {
-        startChatObserver();
-        startEffectObserver();
-    }, 3000);
-
     /* ================================================================
        11. GUI 컨트롤 패널 (유리모핑 다크 테마 디자인)
     ================================================================ */
@@ -1166,6 +1159,24 @@
         }
     }
 
-    setTimeout(createGUI, 2000);
+    function initBubiHelper() {
+        if (window.location.href === 'about:blank' || window.location.origin === 'null') return;
+        
+        loadDB();
+        initTodayChecked();
+        
+        setTimeout(() => {
+            startChatObserver();
+            startEffectObserver();
+        }, 3000);
+        
+        setTimeout(createGUI, 2000);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initBubiHelper);
+    } else {
+        initBubiHelper();
+    }
 
 })();

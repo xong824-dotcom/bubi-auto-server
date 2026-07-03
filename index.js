@@ -31,6 +31,26 @@ async function run() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
 
+    // 메모리 누수 방지: 영상 스트리밍(Media) 차단 기능
+    async function optimizePageMemory(targetPage) {
+        try {
+            await targetPage.setRequestInterception(true);
+            targetPage.on('request', req => {
+                const type = req.resourceType();
+                const url = req.url().toLowerCase();
+                // 비디오, 오디오 스트리밍 파일은 과도한 RAM을 소모하므로 봇에서는 차단
+                if (type === 'media' || url.includes('.ts') || url.includes('.m3u8') || url.includes('.mp4')) {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
+        } catch (e) {
+            console.error('[메모리 최적화 오류]', e);
+        }
+    }
+    await optimizePageMemory(page);
+
     // 활성 페이지 포인터 (팝업창이 열릴 경우를 대비해 동적으로 변환)
     let activePage = page;
 
@@ -62,6 +82,8 @@ async function run() {
                     if (text.includes('WebGL') || text.includes('GL Driver') || text.includes('queueSerial') || text.includes('GPU stall')) return;
                     console.log(`[Popup Console] ${text}`);
                 });
+                
+                await optimizePageMemory(newPage);
                 
                 newPage.on('error', err => {
                     console.error(`[Popup Page Error] ${err.message}`);
