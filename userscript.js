@@ -68,6 +68,11 @@
                     keeps: parsed.keeps || []
                 };
             }
+            // 🚀 웹 대시보드(백엔드)에서 주입한 개별 설정 덮어쓰기!
+            if (typeof window.BOT_SETTINGS !== 'undefined') {
+                DB.settings = { ...DB.settings, ...window.BOT_SETTINGS };
+                console.log('[부비라이브 헬퍼] 대시보드 강제 설정이 적용되었습니다:', window.BOT_SETTINGS);
+            }
         } catch (e) {
             console.error('[부비라이브 헬퍼] 로컬 데이터 로드 오류:', e);
         }
@@ -167,14 +172,30 @@
     }, 100);
 
     function sendChatMessage(text) {
-        const chatInput = document.querySelector('#chat-input');
-        const sendButton = document.querySelector('.btn-send');
+        // 광범위한 채팅 입력창 탐색
+        let chatInput = document.querySelector('input[placeholder*="채팅"], input[placeholder*="메시지"], textarea[placeholder*="채팅"], .chat-input input, input.chat-input');
+        if (!chatInput) {
+            // 위 조건으로 못 찾으면 화면에 있는 text input 중 가장 큰 것을 채팅창으로 간주
+            const inputs = Array.from(document.querySelectorAll('input[type="text"]:not(.search-input), textarea'));
+            chatInput = inputs[inputs.length - 1]; // 보통 마지막이 채팅창
+        }
+        
         if (!chatInput) return false;
+
+        let sendButton = document.querySelector('.btn-send, button.send, .chat-submit, button[type="submit"]');
+        if (!sendButton) {
+            sendButton = Array.from(document.querySelectorAll('button')).find(b => b.innerText && (b.innerText.includes('전송') || b.innerText.includes('보내기')));
+        }
 
         chatInput.value = text;
         chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+        chatInput.dispatchEvent(new Event('change', { bubbles: true }));
 
         setTimeout(() => {
+            // 엔터 키 누르기 시뮬레이션 (버튼이 없거나 작동 안할 때 대비)
+            chatInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            chatInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            
             if (sendButton && !sendButton.disabled) {
                 sendButton.click();
             }
@@ -1159,7 +1180,7 @@
         }
     }
 
-    function initBubiHelper() {
+    function init() {
         if (window.location.href === 'about:blank' || window.location.origin === 'null') return;
         
         loadDB();
@@ -1171,12 +1192,19 @@
         }, 3000);
         
         setTimeout(createGUI, 2000);
+
+        // 🚀 입장(부팅) 시 "매크로 봇 출근완료" 채팅 자동 입력 (UI 로드 시간 고려하여 5초 후 전송)
+        setTimeout(() => {
+            if (typeof queueMessage === 'function') {
+                queueMessage("🤖 매크로 봇 출근완료!");
+            }
+        }, 5000);
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initBubiHelper);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        initBubiHelper();
+        init();
     }
 
 })();

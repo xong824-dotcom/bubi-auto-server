@@ -1,0 +1,22 @@
+[
+  {
+    "type": "vod_key",
+    "id": 115724,
+    "name": "비비윤",
+    "settings": {
+      "autoWelcome": false,
+      "autoAttendance": true,
+      "enableCommands": true
+    }
+  },
+  {
+    "type": "vod_key",
+    "id": 115727,
+    "name": "랜드",
+    "settings": {
+      "autoWelcome": false,
+      "autoAttendance": true,
+      "enableCommands": true
+    }
+  }
+]
