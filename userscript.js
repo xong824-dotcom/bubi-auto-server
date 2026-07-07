@@ -451,11 +451,14 @@
 
     function handleEffectSupport(node) {
         try {
-            const nickEl = node.querySelector('.nick');
-            const honeyEl = node.querySelector('.ic-honey');
+            const nickEl = node.querySelector('.nick') || node.querySelector('.donation-nick');
+            const honeyEl = node.querySelector('.ic-honey') || node.querySelector('.honey-cnt');
             if (!nickEl || !honeyEl) return;
 
-            const nick = nickEl.innerText.trim();
+            let nick = nickEl.innerText.trim();
+            // .donation-nick 포맷은 "누구누구님이" 처럼 '님이'가 붙어오므로 제거
+            nick = nick.replace(/님이$/, '');
+
             const honeyText = honeyEl.innerText.trim();
             
             const amount = parseInt(honeyText.replace(/[^0-9]/g, '')) || 0;
@@ -901,10 +904,10 @@
                         if (node.nodeType !== 1) return;
 
                         // 실제 동적으로 추가되는 것은 effect-area-merge 자체가 아니라 그 내부의 배너 요소들입니다.
-                        const honeyEl = node.classList.contains('ic-honey') ? node : (node.querySelector && node.querySelector('.ic-honey'));
+                        const honeyEl = (node.classList.contains('ic-honey') || node.classList.contains('honey-cnt')) ? node : (node.querySelector && (node.querySelector('.ic-honey') || node.querySelector('.honey-cnt')));
                         if (honeyEl) {
                             // 배너 정보를 담고 있는 최상위 노드 추출
-                            const rootNode = honeyEl.closest ? (honeyEl.closest('.normal-display-board') || honeyEl.closest('.effect-area-merge') || node) : node;
+                            const rootNode = honeyEl.closest ? (honeyEl.closest('.normal-display-board') || honeyEl.closest('.effect-area-merge') || honeyEl.closest('.donation-card') || node) : node;
                             handleEffectSupport(rootNode);
                         }
                     });
