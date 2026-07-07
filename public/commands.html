@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>명령어 가이드 | BJ Manager Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #030712;
+            --card-bg: #111827;
+            --accent-primary: #6366f1;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #1f2937;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Pretendard', sans-serif;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .category {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+        }
+
+        .category h2 {
+            font-size: 1.5rem;
+            color: var(--accent-primary);
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .command-item {
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .command-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .cmd-badge {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-right: 15px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .cmd-desc {
+            flex: 1;
+            color: var(--text-main);
+            padding-top: 3px;
+        }
+        
+        .btn-back {
+            display: inline-block;
+            margin-bottom: 2rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        
+        .btn-back:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">← 대시보드로 돌아가기</a>
+    
+    <header>
+        <h1>봇 명령어 가이드</h1>
+        <p style="color: var(--text-muted);">부비라이브 매크로에서 사용할 수 있는 전체 명령어 목록입니다.</p>
+    </header>
+
+    <div class="category">
+        <h2>📚 기본 명령어</h2>
+        <div class="command-item">
+            <div class="cmd-badge">!명령어</div>
+            <div class="cmd-desc">사용 가능한 모든 명령어 목록을 봇이 채팅창에 안내합니다. (!도움말 과 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!타임</div>
+            <div class="cmd-desc">방송이 켜진 후 지금까지 얼마나 지났는지 방송 진행 시간을 알려줍니다. (!업타임 과 동일)</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>🎲 놀이 / 참여 기능</h2>
+        <div class="command-item">
+            <div class="cmd-badge">!출석</div>
+            <div class="cmd-desc">시청자가 방송에 출석체크를 합니다.</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!운세</div>
+            <div class="cmd-desc">재미로 보는 오늘의 운세를 출력합니다.</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!주사위</div>
+            <div class="cmd-desc">1부터 100 사이의 랜덤 숫자를 굴려 결과를 보여줍니다.</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!뽑기</div>
+            <div class="cmd-desc">추첨을 진행하여 랜덤으로 결과를 뽑습니다. (!추첨 과 동일)</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>👤 프로필 및 미션</h2>
+        <div class="command-item">
+            <div class="cmd-badge">!프로필등록</div>
+            <div class="cmd-desc">자신만의 프로필 소개글을 봇에 등록합니다. (예: !프로필등록 안녕 나는 봇이야)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!프로필</div>
+            <div class="cmd-desc">등록된 자신의 프로필을 확인하거나 다른 사람에게 보여줍니다.</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!미션등록</div>
+            <div class="cmd-desc">현재 방송의 미션을 등록합니다.</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!미션</div>
+            <div class="cmd-desc">해당 방송에 설정된 전체 미션 목록을 모두 확인합니다.</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>📝 메모 (킵) 기능</h2>
+        <div class="command-item">
+            <div class="cmd-badge">!킵</div>
+            <div class="cmd-desc">방송 중 기억해야 할 내용을 메모해 둡니다. (!메모 와 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!킵목록</div>
+            <div class="cmd-desc">저장해둔 메모들을 모두 확인합니다. (!메모목록 과 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!킵삭제</div>
+            <div class="cmd-desc">저장된 특정 메모를 지웁니다. 번호를 함께 입력하세요. (!메모삭제 와 동일)</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>🏆 랭킹 (순위) 시스템</h2>
+        <div class="command-item">
+            <div class="cmd-badge">!채팅순위</div>
+            <div class="cmd-desc">오늘 채팅을 가장 많이 친 시청자 랭킹을 보여줍니다. (!오늘순위 와 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!어제순위</div>
+            <div class="cmd-desc">어제자 기준 채팅 순위를 보여줍니다. (!어제채팅순위 와 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!한달순위</div>
+            <div class="cmd-desc">이번 달 누적 채팅 랭킹을 보여줍니다. (!월간순위 와 동일)</div>
+        </div>
+        <div class="command-item">
+            <div class="cmd-badge">!후원순위</div>
+            <div class="cmd-desc">후원을 가장 많이 한 시청자 랭킹을 보여줍니다. (!기프트순위, !스티커순위 와 동일)</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
