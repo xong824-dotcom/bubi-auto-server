@@ -52,14 +52,16 @@ async function refreshAuthToken() {
 
         const refreshToken = refreshCookie.value;
         
-        // 부비라이브 토큰 갱신 API 호출
+        // 부비라이브 토큰 갱신 API 호출 (refresh_token으로 새 토큰 발급)
+        const body = JSON.stringify({ refresh_token: refreshToken });
         const result = await new Promise((resolve, reject) => {
             const options = {
                 hostname: 'api.bubeelive.com',
-                path: '/v2/sites/2/auth/token',
-                method: 'POST',
+                path: '/v2/sites/2/auth/refresh',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(body),
                     'Authorization': `Bearer ${refreshToken}`,
                     'Origin': 'https://www.bubeelive.com',
                     'Referer': 'https://www.bubeelive.com/'
@@ -73,6 +75,7 @@ async function refreshAuthToken() {
                 });
             });
             req.on('error', reject);
+            req.write(body);
             req.end();
         });
 
