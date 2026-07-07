@@ -53,22 +53,39 @@
     function loadDB() {
         if (window.location.href === 'about:blank' || window.location.origin === 'null') return;
         try {
+            // 1. 서버에서 넘어온 영구 DB가 있다면 우선 사용
+            if (window.BOT_DB) {
+                DB = {
+                    settings: { ...DB.settings, ...window.BOT_DB.settings },
+                    attendance: { ...DB.attendance, ...window.BOT_DB.attendance },
+                    fortunes: { ...DB.fortunes, ...window.BOT_DB.fortunes },
+                    receivedGifts: { ...DB.receivedGifts, ...window.BOT_DB.receivedGifts },
+                    userGifts: { ...DB.userGifts, ...window.BOT_DB.userGifts },
+                    dailyRank: { ...DB.dailyRank, ...window.BOT_DB.dailyRank },
+                    monthRank: { ...DB.monthRank, ...window.BOT_DB.monthRank },
+                    missions: window.BOT_DB.missions || [],
+                    keeps: window.BOT_DB.keeps || []
+                };
+            }
+
+            // 2. 브라우저 로컬 저장소(localStorage)에 더 최신 데이터가 있을 수 있으니 덮어쓰기 병합
             const data = localStorage.getItem(STORAGE_KEY);
             if (data) {
                 const parsed = JSON.parse(data);
                 DB = {
                     settings: { ...DB.settings, ...parsed.settings },
-                    attendance: parsed.attendance || {},
-                    fortunes: parsed.fortunes || {},
-                    receivedGifts: parsed.receivedGifts || {},
-                    userGifts: parsed.userGifts || {},
-                    dailyRank: parsed.dailyRank || {},
-                    monthRank: parsed.monthRank || {},
-                    missions: parsed.missions || [],
-                    keeps: parsed.keeps || []
+                    attendance: { ...DB.attendance, ...parsed.attendance },
+                    fortunes: { ...DB.fortunes, ...parsed.fortunes },
+                    receivedGifts: { ...DB.receivedGifts, ...parsed.receivedGifts },
+                    userGifts: { ...DB.userGifts, ...parsed.userGifts },
+                    dailyRank: { ...DB.dailyRank, ...parsed.dailyRank },
+                    monthRank: { ...DB.monthRank, ...parsed.monthRank },
+                    missions: parsed.missions || DB.missions,
+                    keeps: parsed.keeps || DB.keeps
                 };
             }
-            // 🚀 웹 대시보드(백엔드)에서 주입한 개별 설정 덮어쓰기!
+
+            // 3. 웹 대시보드(백엔드)에서 주입한 개별 설정 무조건 최우선 적용
             if (typeof window.BOT_SETTINGS !== 'undefined') {
                 DB.settings = { ...DB.settings, ...window.BOT_SETTINGS };
                 console.log('[부비라이브 헬퍼] 대시보드 강제 설정이 적용되었습니다:', window.BOT_SETTINGS);
@@ -81,6 +98,10 @@
     function saveDB() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+            // 서버 쪽 파일로도 영구 저장 전송
+            if (window.saveRoomDB) {
+                window.saveRoomDB(DB).catch(()=>{});
+            }
         } catch (e) {
             console.error('[부비라이브 헬퍼] 로컬 데이터 저장 오류:', e);
         }

@@ -734,8 +734,22 @@ async function main() {
             else req.continue();
         });
 
-        // 🚀 대시보드 설정을 브라우저 컨텍스트로 주입
-        await p.evaluateOnNewDocument(`window.BOT_SETTINGS = ${JSON.stringify(settings)};`);
+        // 🚀 대시보드 설정 및 서버 영구 DB를 브라우저 컨텍스트로 주입
+        const dbPath = path.join(DATA_DIR, `db_${vod_key}.json`);
+        let initialDB = null;
+        if (fs.existsSync(dbPath)) {
+            try { initialDB = JSON.parse(fs.readFileSync(dbPath, 'utf8')); } catch(e){}
+        }
+
+        await p.evaluateOnNewDocument(`
+            window.BOT_SETTINGS = ${JSON.stringify(settings)};
+            window.BOT_DB = ${JSON.stringify(initialDB)};
+        `);
+
+        // 🚀 저장 함수(exposeFunction)
+        await p.exposeFunction('saveRoomDB', async (data) => {
+            try { fs.writeFileSync(dbPath, JSON.stringify(data, null, 2)); } catch(e) {}
+        });
         await p.evaluateOnNewDocument(userscriptContent);
         
         p.on('console', msg => {
