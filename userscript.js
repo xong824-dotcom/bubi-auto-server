@@ -26,7 +26,7 @@
        1. 데이터베이스 및 로컬 스토리지 관리
     ================================================================ */
     const roomIdMatch = window.location.href.match(/\/play\/([a-zA-Z0-9_]+)/);
-    const CURRENT_ROOM_ID = roomIdMatch ? roomIdMatch[1] : 'global';
+    const CURRENT_ROOM_ID = (typeof window.ROOM_KEY !== 'undefined' ? window.ROOM_KEY : null) || (roomIdMatch ? roomIdMatch[1] : 'global');
     const STORAGE_KEY = 'bubi_helper_db_' + CURRENT_ROOM_ID;
     let DB = {
         settings: {

@@ -735,7 +735,8 @@ async function main() {
         });
 
         // 🚀 대시보드 설정 및 서버 영구 DB를 브라우저 컨텍스트로 주입
-        const dbPath = path.join(DATA_DIR, `db_${vod_key}.json`);
+        const roomDbKey = user_key || vod_key;
+        const dbPath = path.join(DATA_DIR, `db_${roomDbKey}.json`);
         let initialDB = null;
         if (fs.existsSync(dbPath)) {
             try { initialDB = JSON.parse(fs.readFileSync(dbPath, 'utf8')); } catch(e){}
@@ -744,6 +745,7 @@ async function main() {
         await p.evaluateOnNewDocument(`
             window.BOT_SETTINGS = ${JSON.stringify(settings)};
             window.BOT_DB = ${JSON.stringify(initialDB)};
+            window.ROOM_KEY = '${roomDbKey}';
         `);
 
         // 🚀 저장 함수(exposeFunction)
@@ -799,7 +801,8 @@ async function main() {
 
             for (const activeVodKey of activeRooms.keys()) {
                 if (!currentLiveVodKeys.has(activeVodKey)) {
-                    await closeRoom(activeVodKey);
+                    // await closeRoom(activeVodKey); // 🚀 방송이 종료되더라도 봇이 나가지 않도록 주석 처리 (대시보드에서 삭제할 때만 퇴장)
+                    log(`[방 유지] 방송(${activeVodKey})이 종료되었지만 봇은 방에 남습니다.`);
                 }
             }
         } catch (e) {
