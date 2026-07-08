@@ -180,21 +180,26 @@ function startDashboard() {
         // 🚀 편의 기능: 사용자가 방번호(vod_key)를 입력해도, 자동으로 평생 고유 ID(user_key)로 변환해주는 로직!
         if (type === 'vod_key') {
             try {
-                // axios 대신 Node 18+ 네이티브 fetch 사용 (모듈 의존성 에러 방지)
-                const response = await fetch(`${CONFIG.apiBase}/live/rooms/${id}`, {
-                    signal: AbortSignal.timeout(3000)
+                const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
+                const response = await fetch(url, {
+                    headers: { 'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10' },
+                    signal: AbortSignal.timeout(5000)
                 });
                 const data = await response.json();
-                const targetLive = data?.lives?.find(l => String(l.vod_key) === String(id));
+                const targetLive = (data.vod_list || []).find(l => String(l.vod_key) === String(id));
+                
                 if (targetLive && targetLive.user_key) {
                     // 찾았다면 user_key 모드로 강제 변경하고 저장
                     log(`💡 방번호(${id})에서 유저 고유 ID(${targetLive.user_key}) 자동 추출 성공!`);
                     id = targetLive.user_key;
                     type = 'user_key';
-                    if (name === '홍길동' || !name) name = targetLive.v_subject || name; // 이름도 자동 완성
+                    if (name === '홍길동' || !name) name = targetLive.bj_nick || targetLive.v_subject || name; // 이름도 자동 완성
+                } else {
+                    return res.status(400).json({ message: '현재 라이브 중인 방송이 아니거나 유효하지 않은 방 번호입니다.' });
                 }
             } catch (e) {
-                log('API 조회 실패로 변환 생략');
+                log('API 조회 실패로 변환 생략: ' + e.message);
+                return res.status(500).json({ message: '부비라이브 서버 응답이 없습니다. 잠시 후 다시 시도해주세요.' });
             }
         }
 
