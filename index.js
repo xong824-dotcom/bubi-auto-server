@@ -738,6 +738,37 @@ async function main() {
         // 🚀 대시보드 설정 및 서버 영구 DB를 브라우저 컨텍스트로 주입
         const roomDbKey = user_key || vod_key;
         const dbPath = path.join(DATA_DIR, `db_${roomDbKey}.json`);
+        
+        // 🚀 긴급 마이그레이션: 기존 vod_key DB의 데이터를 user_key DB로 병합 (1회성)
+        if (user_key) {
+            const oldDbPath = path.join(DATA_DIR, `db_${vod_key}.json`);
+            const migratedFlag = path.join(DATA_DIR, `db_${vod_key}_migrated.json`);
+            if (fs.existsSync(oldDbPath) && !fs.existsSync(migratedFlag)) {
+                try {
+                    let oldData = JSON.parse(fs.readFileSync(oldDbPath, 'utf8'));
+                    let newData = {};
+                    if (fs.existsSync(dbPath)) {
+                        newData = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+                    }
+                    // 병합 (기존 vod_key에 있던 프로필, 미션 등 보존, 겹치면 새 데이터 우선)
+                    newData.settings = { ...(oldData.settings || {}), ...(newData.settings || {}) };
+                    // 새 데이터가 비어있을 때만 옛날 데이터 가져옴
+                    if (!newData.settings.bjProfileText && oldData.settings?.bjProfileText) {
+                        newData.settings.bjProfileText = oldData.settings.bjProfileText;
+                    }
+                    newData.missions = (newData.missions && newData.missions.length) ? newData.missions : (oldData.missions || []);
+                    newData.keeps = (newData.keeps && newData.keeps.length) ? newData.keeps : (oldData.keeps || []);
+                    newData.notices = (newData.notices && newData.notices.length) ? newData.notices : (oldData.notices || []);
+                    
+                    fs.writeFileSync(dbPath, JSON.stringify(newData, null, 2));
+                    fs.writeFileSync(migratedFlag, 'done'); // 마이그레이션 완료 표시
+                    log(`📦 [마이그레이션] 구버전 DB(${vod_key}) 데이터를 신규 DB(${user_key})에 성공적으로 병합했습니다!`);
+                } catch(e) {
+                    log(`❌ 마이그레이션 실패: ${e.message}`);
+                }
+            }
+        }
+
         let initialDB = null;
         if (fs.existsSync(dbPath)) {
             try { initialDB = JSON.parse(fs.readFileSync(dbPath, 'utf8')); } catch(e){}
