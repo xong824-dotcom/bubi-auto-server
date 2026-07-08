@@ -47,7 +47,8 @@
         dailyRank: {},
         monthRank: {},
         missions: [], // 동적 미션 저장용
-        keeps: [] // 킵 메모 저장용
+        keeps: [], // 킵 메모 저장용
+        notices: [] // 안내문 저장용
     };
 
     function loadDB() {
@@ -64,7 +65,8 @@
                     dailyRank: { ...DB.dailyRank, ...window.BOT_DB.dailyRank },
                     monthRank: { ...DB.monthRank, ...window.BOT_DB.monthRank },
                     missions: window.BOT_DB.missions || [],
-                    keeps: window.BOT_DB.keeps || []
+                    keeps: window.BOT_DB.keeps || [],
+                    notices: window.BOT_DB.notices || []
                 };
             }
 
@@ -81,7 +83,8 @@
                     dailyRank: { ...DB.dailyRank, ...parsed.dailyRank },
                     monthRank: { ...DB.monthRank, ...parsed.monthRank },
                     missions: parsed.missions || DB.missions,
-                    keeps: parsed.keeps || DB.keeps
+                    keeps: parsed.keeps || DB.keeps,
+                    notices: parsed.notices || DB.notices || []
                 };
             }
 
@@ -545,7 +548,7 @@
 
         if (cmd === '!명령어' || cmd === '!도움말') {
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호] / !안내문목록\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             } else {
                 queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             }
@@ -583,6 +586,62 @@
             }
             const picked = candidates[Math.floor(Math.random() * candidates.length)];
             queueMessage(`🎉 [추첨 완료] 축하합니다! 당첨자는 [ ${picked} ] 입니다! ✨`);
+        }
+        // ================= [ 자동 안내문 기능 (호스트/매니저 전용) ] =================
+        else if (cmd === '!안내문등록' || cmd === '!안내문설정') {
+            if (!isHostOrManager) {
+                queueMessage(`❌ 안내문 설정은 호스트와 매니저만 가능합니다.`);
+                return;
+            }
+            const min = parseInt(tokens[1]);
+            const content = tokens.slice(2).join(' ').trim();
+            
+            if (!min || min < 1 || !content) {
+                queueMessage(`❌ 사용법: !안내문등록 [분] [내용] (예: !안내문등록 10 추천과 즐찾 부탁드려요)`);
+                return;
+            }
+            
+            if (!DB.notices) DB.notices = [];
+            const newId = DB.notices.length > 0 ? Math.max(...DB.notices.map(n => n.id)) + 1 : 1;
+            DB.notices.push({ id: newId, intervalMin: min, msg: content, lastSent: Date.now() });
+            saveDB();
+            queueMessage(`✅ [안내문 ${newId}번] 등록 완료! (${min}분 주기로 자동 출력됩니다)`);
+        }
+        else if (cmd === '!안내문종료' || cmd === '!안내문삭제') {
+            if (!isHostOrManager) {
+                queueMessage(`❌ 안내문 종료는 호스트와 매니저만 가능합니다.`);
+                return;
+            }
+            if (!DB.notices || DB.notices.length === 0) {
+                queueMessage(`❌ 현재 등록된 안내문이 없습니다.`);
+                return;
+            }
+            const targetId = parseInt(tokens[1]);
+            if (targetId) {
+                const idx = DB.notices.findIndex(n => n.id === targetId);
+                if (idx !== -1) {
+                    DB.notices.splice(idx, 1);
+                    saveDB();
+                    queueMessage(`✅ ${targetId}번 안내문이 삭제되었습니다.`);
+                } else {
+                    queueMessage(`❌ ${targetId}번 안내문을 찾을 수 없습니다. (!안내문목록 확인)`);
+                }
+            } else {
+                DB.notices = [];
+                saveDB();
+                queueMessage(`✅ 모든 안내문이 삭제되었습니다.`);
+            }
+        }
+        else if (cmd === '!안내문목록') {
+            if (!DB.notices || DB.notices.length === 0) {
+                queueMessage(`📋 현재 등록된 안내문이 없습니다.`);
+                return;
+            }
+            let text = `📋 [안내문 목록]\n`;
+            DB.notices.forEach(n => {
+                text += `${n.id}번 (${n.intervalMin}분) : ${n.msg}\n`;
+            });
+            queueMessage(text.trim());
         }
         // ================= [ 텍스트 프로필 등록 (호스트/매니저 전용) ] =================
         else if (cmd === '!프로필등록') {
@@ -787,7 +846,7 @@
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
 
-                        const msgItem = node.classList?.contains('msg-item') ? node : (node.querySelector?.('.msg-item'));
+                        const msgItem = (node.classList?.contains('msg-item') || node.classList?.contains('viewer-content')) ? node : (node.querySelector?.('.msg-item') || node.querySelector?.('.viewer-content'));
                         if (msgItem) {
                             const nameEl = msgItem.querySelector('.user-name');
                             const txtEl = msgItem.querySelector('.msg-txt');
@@ -1223,6 +1282,25 @@
                 queueMessage("🤖 매크로 봇 출근완료!");
             }
         }, 5000);
+
+        // 🚀 자동 안내문(Notice) 루프 시작
+        setInterval(() => {
+            if (!DB.notices || DB.notices.length === 0) return;
+            const now = Date.now();
+            let updated = false;
+            
+            DB.notices.forEach(n => {
+                const passedMs = now - (n.lastSent || 0);
+                const intervalMs = n.intervalMin * 60 * 1000;
+                if (passedMs >= intervalMs) {
+                    queueMessage(`📢 [안내] ${n.msg}`);
+                    n.lastSent = now;
+                    updated = true;
+                }
+            });
+            
+            if (updated) saveDB();
+        }, 15000); // 15초마다 주기 확인
     }
 
     if (document.readyState === 'loading') {
