@@ -21,7 +21,7 @@ const CONFIG = {
     apiBase: 'https://api.bubeelive.com/v2/sites/2',
     siteBase: 'https://www.bubeelive.com',
     port: PORT || 8080,
-    configPath: path.join(__dirname, 'config.json')
+    configPath: CONFIG_FILE
 };
 
 const CHROME_EXE = process.platform === 'win32'
