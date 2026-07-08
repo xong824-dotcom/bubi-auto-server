@@ -278,25 +278,26 @@ function startDashboard() {
 
     // 타겟 개별 설정 변경
     app.patch('/api/targets/:id/settings', (req, res) => {
-        const id = Number(req.params.id);
-        const idx = targets.findIndex(t => t.id === id);
+        const idStr = String(req.params.id);
+        const idx = targets.findIndex(t => String(t.id) === idStr);
         if (idx !== -1) {
             if (!targets[idx].settings) {
                 targets[idx].settings = { autoWelcome: false, autoAttendance: false, enableCommands: true };
             }
             targets[idx].settings = { ...targets[idx].settings, ...req.body };
             saveConfig();
-            log(`⚙️ 설정 변경됨: ${targets[idx].name} (${id}) -> ${JSON.stringify(req.body)}`);
+            log(`⚙️ 설정 변경됨: ${targets[idx].name} (${idStr}) -> ${JSON.stringify(req.body)}`);
             
             // 🔥 활성화된 방이 있다면 실시간으로 설정 주입
             if (global.activeRooms) {
-                const targetId = String(id);
-                // activeRooms의 키는 vod_key이므로, 모든 방을 순회하며 대상 방을 찾습니다.
                 for (const [vod_key, p] of global.activeRooms.entries()) {
-                    const targetInfo = targets.find(t => t.id === Number(vod_key) || t.id === String(vod_key));
-                    if (targetInfo && String(targetInfo.id) === targetId && !p.isClosed()) {
+                    if ((String(vod_key) === idStr || String(p.user_key) === idStr) && !p.isClosed()) {
                         p.evaluate((newSettings) => {
-                            window.BOT_SETTINGS = newSettings;
+                            if (typeof window.updateBotSettings === 'function') {
+                                window.updateBotSettings(newSettings);
+                            } else {
+                                window.BOT_SETTINGS = newSettings;
+                            }
                         }, targets[idx].settings).catch(e => log(`실시간 설정 동기화 실패: ${e.message}`));
                         log(`⚡ [방 ${vod_key}] 변경된 설정을 봇에게 실시간으로 전송 완료!`);
                     }
@@ -763,6 +764,8 @@ async function main() {
         });
 
         try { await p.goto(`${CONFIG.siteBase}/lives/play/${vod_key}`, { waitUntil: 'domcontentloaded', timeout: 30000 }); } catch(e) { }
+        p.user_key = user_key;
+        p.vod_key = vod_key;
         activeRooms.set(vod_key, p);
     }
 
