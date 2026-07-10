@@ -292,7 +292,7 @@
         else if (score >= 20) text = "소길! 차분하게 하루를 보내시면 무난할 것입니다. 👍";
         else text = "흉! 오늘은 매사에 조금만 조심하는 것이 좋겠습니다! 🛡️";
 
-        DB.fortunes[userId] = { score, date: today };
+        DB.fortunes[userId] = { score, date: today, nick: nick };
         saveDB();
 
         return `🔮 [${nick}님의 오늘 운세]\n점수: ${score}점\n해석: ${text}`;
@@ -526,15 +526,15 @@
         saveDB();
     }
 
-    function getRankOutput(rankData, title) {
+    function getRankOutput(rankData, title, limit = 10) {
         if (!rankData || Object.keys(rankData).length === 0) {
             return `📊 [${title}] 오늘 아직 기록된 채팅이 없습니다.`;
         }
         const sorted = Object.values(rankData)
             .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
+            .slice(0, limit);
 
-        let msg = `📊 [${title} TOP 5]\n`;
+        let msg = `📊 [${title} TOP ${limit}]\n`;
         sorted.forEach((item, idx) => {
             msg += `${idx + 1}등: ${item.nick} (${item.count}회)\n`;
         });
@@ -556,9 +556,9 @@
 
         if (cmd === '!명령어' || cmd === '!도움말') {
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호] / !안내문목록\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호] / !안내문목록\n\n👤 [일반 명령어]\n!출석 / !운세 / !운세기록 / !타임 / !주사위 [숫자] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 [숫자] / !후원순위 [숫자] / !어제순위 / !한달순위`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 [최대치] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !운세기록 / !타임 / !주사위 [숫자] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 [숫자] / !후원순위 [숫자] / !어제순위 / !한달순위`);
             }
         }
         else if (cmd === '!출석') {
@@ -573,6 +573,25 @@
         else if (cmd === '!운세') {
             const fortuneMsg = getFortune(userId, nick);
             queueMessage(fortuneMsg);
+        }
+        else if (cmd === '!운세기록') {
+            const today = getToday();
+            if (!DB.fortunes) DB.fortunes = {};
+            const todaysFortunes = Object.values(DB.fortunes).filter(f => f.date === today);
+            
+            if (todaysFortunes.length === 0) {
+                queueMessage(`🔮 오늘 아직 운세를 확인한 사람이 없습니다.`);
+                return;
+            }
+            
+            // 가장 최근에 본 10명만 보여주기
+            const recent = todaysFortunes.slice(-10);
+            let msg = `🔮 [오늘의 운세 기록] (총 ${todaysFortunes.length}명)\n`;
+            recent.forEach((item, idx) => {
+                const name = item.nick || '익명';
+                msg += `${idx + 1}. ${name}님 (${item.score}점)\n`;
+            });
+            queueMessage(msg.trim());
         }
         else if (cmd === '!타임' || cmd === '!업타임') {
             const diffSec = Math.floor((Date.now() - START_MS) / 1000);
@@ -774,31 +793,35 @@
         }
         // ================= [ 순위 집계 기능 ] =================
         else if (cmd === '!채팅순위' || cmd === '!오늘순위') {
+            const limit = parseInt(tokens[1]) || 10;
             const today = getToday();
-            const output = getRankOutput(DB.dailyRank?.[today], "오늘 채팅 순위");
+            const output = getRankOutput(DB.dailyRank?.[today], "오늘 채팅 순위", limit);
             queueMessage(output);
         }
         else if (cmd === '!어제순위' || cmd === '!어제채팅순위') {
+            const limit = parseInt(tokens[1]) || 10;
             const yesterday = getYesterday();
-            const output = getRankOutput(DB.dailyRank?.[yesterday], "어제 채팅 순위");
+            const output = getRankOutput(DB.dailyRank?.[yesterday], "어제 채팅 순위", limit);
             queueMessage(output);
         }
         else if (cmd === '!한달순위' || cmd === '!월간순위') {
+            const limit = parseInt(tokens[1]) || 10;
             const month = getMonth();
-            const output = getRankOutput(DB.monthRank?.[month], "이번 달 채팅 순위");
+            const output = getRankOutput(DB.monthRank?.[month], "이번 달 채팅 순위", limit);
             queueMessage(output);
         }
         else if (cmd === '!후원순위' || cmd === '!기프트순위' || cmd === '!스티커순위') {
+            const limit = parseInt(tokens[1]) || 10;
             const today = getToday();
             const gifts = DB.userGifts?.[today] || {};
             const sorted = Object.entries(gifts)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
+                .slice(0, limit);
             if (!sorted.length) {
                 queueMessage(`📊 오늘 후원 기록이 아직 없습니다.`);
                 return;
             }
-            let msg = `📊 [오늘의 후원 순위 TOP 5]\n`;
+            let msg = `📊 [오늘의 후원 순위 TOP ${limit}]\n`;
             sorted.forEach(([user, count], idx) => {
                 msg += `${idx + 1}등: ${user} (${count}개)\n`;
             });
@@ -1301,7 +1324,14 @@
                 const passedMs = now - (n.lastSent || 0);
                 const intervalMs = n.intervalMin * 60 * 1000;
                 if (passedMs >= intervalMs) {
-                    queueMessage(`📢 [안내] ${n.msg}`);
+                    if (n.msg.trim().startsWith('!')) {
+                        // 명령어인 경우 봇 내부에서 바로 실행 (매니저 권한 부여)
+                        if (typeof handleCommand === 'function') {
+                            handleCommand(n.msg.trim(), 'system', '안내봇', true);
+                        }
+                    } else {
+                        queueMessage(`📢 [안내] ${n.msg}`);
+                    }
                     n.lastSent = now;
                     updated = true;
                 }
