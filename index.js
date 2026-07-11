@@ -40,79 +40,11 @@ function log(msg) {
 }
 
 // ============================================================
-// 쿠키 자동 갱신 (auth_token 15분마다 만료되므로 refresh_token으로 갱신)
+// 쿠키 자동 갱신 (백그라운드 탭을 이용한 자연 갱신)
 // ============================================================
-async function refreshAuthToken() {
-    try {
-        const cookiePath = path.join(__dirname, 'cookies.json');
-        if (!fs.existsSync(cookiePath)) return;
-        const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
-        const refreshCookie = cookies.find(c => c.name === 'auth_refresh_token');
-        if (!refreshCookie) return;
+// 기존의 강제 API 호출 방식은 서버 갱신 주소 변경 등으로 막힐 수 있으므로,
+// 브라우저 백그라운드에 메인화면을 띄워두고 새로고침하여 사이트 자체 로직으로 갱신을 유도합니다.
 
-        const refreshToken = refreshCookie.value;
-        
-        // 부비라이브 토큰 갱신 API 호출 (refresh_token으로 새 토큰 발급)
-        const body = JSON.stringify({ refresh_token: refreshToken });
-        const result = await new Promise((resolve, reject) => {
-            const options = {
-                hostname: 'api.bubeelive.com',
-                path: '/v2/sites/2/auth/refresh',
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(body),
-                    'Authorization': `Bearer ${refreshToken}`,
-                    'Origin': 'https://www.bubeelive.com',
-                    'Referer': 'https://www.bubeelive.com/'
-                }
-            };
-            const req = https.request(options, res => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => {
-                    try { resolve(JSON.parse(data)); } catch(e) { reject(e); }
-                });
-            });
-            req.on('error', reject);
-            req.write(body);
-            req.end();
-        });
-
-        if (result && result.data && result.data.token) {
-            const newToken = result.data.token;
-            const newRefresh = result.data.refresh_token || refreshToken;
-            
-            // cookies.json 업데이트
-            const updated = cookies.map(c => {
-                if (c.name === 'auth_token') return { ...c, value: `Bearer ${newToken}` };
-                if (c.name === 'auth_refresh_token') return { ...c, value: newRefresh };
-                return c;
-            });
-            fs.writeFileSync(cookiePath, JSON.stringify(updated, null, 2));
-            
-            // 열려있는 모든 브라우저 탭에도 새 토큰 주입
-            if (global.activeRooms) {
-                for (const [, p] of global.activeRooms.entries()) {
-                    if (!p.isClosed()) {
-                        await p.setCookie(
-                            { name: 'auth_token', value: `Bearer ${newToken}`, domain: '.bubeelive.com', path: '/' },
-                            { name: 'auth_refresh_token', value: newRefresh, domain: '.bubeelive.com', path: '/' }
-                        ).catch(() => {});
-                    }
-                }
-            }
-            log(`🔄 [토큰 갱신 성공] 새 auth_token 발급 완료!`);
-        } else {
-            log(`⚠️ [토큰 갱신] 응답 이상: ${JSON.stringify(result)}`);
-        }
-    } catch(e) {
-        log(`❌ [토큰 갱신 실패] ${e.message}`);
-    }
-}
-
-// 10분마다 자동 갱신 (auth_token 유효기간 15분이므로 넉넉하게 10분)
-setInterval(refreshAuthToken, 10 * 60 * 1000);
 
 
 // ============================================================
@@ -456,25 +388,37 @@ function fetchLiveList() {
             'Referer': CONFIG.siteBase + '/',
             'Origin': CONFIG.siteBase
         };
-        try {
-            const cookiePath = path.join(__dirname, 'cookies.json');
-            if (fs.existsSync(cookiePath)) {
-                const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
-                const token = cookies.find(c => c.name === 'auth_token');
-                if (token) headers['Authorization'] = token.value;
-            }
-        } catch(e) {}
+        const fetchCookies = async () => {
+            try {
+                if (global.bgPage && !global.bgPage.isClosed()) {
+                    const cookies = await global.bgPage.cookies();
+                    const token = cookies.find(c => c.name === 'auth_token');
+                    if (token) {
+                        headers['Authorization'] = decodeURIComponent(token.value);
+                        return;
+                    }
+                }
+                const cookiePath = path.join(__dirname, 'cookies.json');
+                if (fs.existsSync(cookiePath)) {
+                    const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
+                    const token = cookies.find(c => c.name === 'auth_token');
+                    if (token) headers['Authorization'] = decodeURIComponent(token.value);
+                }
+            } catch(e) {}
+        };
 
-        const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
-        https.get(url, { headers, timeout: 10000 }, res => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+        fetchCookies().then(() => {
+            const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
+            https.get(url, { headers, timeout: 10000 }, res => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+                });
+            }).on('error', reject).on('timeout', function () {
+                this.destroy();
+                reject(new Error('Request timeout'));
             });
-        }).on('error', reject).on('timeout', function () {
-            this.destroy();
-            reject(new Error('Request timeout'));
         });
     });
 }
@@ -685,7 +629,7 @@ async function main() {
     const userscriptContent = fs.readFileSync(path.join(__dirname, 'userscript.js'), 'utf8');
 
     log('🌐 브라우저 엔진 시작 중...');
-    const browser = await puppeteer.launch({
+    global.browser = await puppeteer.launch({
         executablePath: CHROME_EXE,
         headless: true,
         args: [
@@ -701,9 +645,23 @@ async function main() {
         if (fs.existsSync(cookiePath)) {
             let cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
             cookies = cookies.map(c => ({ ...c, url: CONFIG.siteBase }));
-            const pages = await browser.pages();
-            await pages[0].setCookie(...cookies);
-            log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 이제 로그인 화면 없이 무적 상태로 돌파합니다!`);
+            
+            // 메인 백그라운드 탭 생성 (자동 갱신용)
+            global.bgPage = await global.browser.newPage();
+            await global.bgPage.setCookie(...cookies);
+            await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+            log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
+            
+            // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
+            setInterval(async () => {
+                try { 
+                    if (global.bgPage && !global.bgPage.isClosed()) {
+                        await global.bgPage.reload({ waitUntil: 'networkidle2', timeout: 30000 });
+                        log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 완료');
+                    }
+                } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
+            }, 10 * 60 * 1000);
+            
         } else {
             log(`⚠️ [쿠키 누락] cookies.json 파일이 없습니다! (비로그인 상태로 진입합니다)`);
         }
@@ -721,7 +679,7 @@ async function main() {
         const defaultSettings = { autoWelcome: false, autoAttendance: false, enableCommands: true };
         const settings = { ...defaultSettings, ...(target.settings || {}) };
 
-        const p = await browser.newPage();
+        const p = await global.browser.newPage();
         global.livePage = p;
         await p.setViewport({ width: 1280, height: 720 });
         
