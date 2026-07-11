@@ -181,10 +181,17 @@ function startDashboard() {
         if (type === 'vod_key') {
             try {
                 const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
-                const response = await fetch(url, {
-                    headers: { 'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10' },
-                    signal: AbortSignal.timeout(5000)
-                });
+                const headers = { 'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10' };
+                try {
+                    const cookiePath = path.join(__dirname, 'cookies.json');
+                    if (fs.existsSync(cookiePath)) {
+                        const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
+                        const token = cookies.find(c => c.name === 'auth_token');
+                        if (token) headers['Authorization'] = token.value;
+                    }
+                } catch(e) {}
+                
+                const response = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
                 const data = await response.json();
                 const targetLive = (data.vod_list || []).find(l => String(l.vod_key) === String(id));
                 
@@ -442,17 +449,24 @@ function startDashboard() {
 // API 통신 (경량 폴링)
 // ============================================================
 function fetchLiveList() {
-    const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
     return new Promise((resolve, reject) => {
-        https.get(url, {
-            headers: {
-                'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10',
-                'Accept': 'application/json',
-                'Referer': CONFIG.siteBase + '/',
-                'Origin': CONFIG.siteBase
-            },
-            timeout: 10000
-        }, res => {
+        const headers = {
+            'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10',
+            'Accept': 'application/json',
+            'Referer': CONFIG.siteBase + '/',
+            'Origin': CONFIG.siteBase
+        };
+        try {
+            const cookiePath = path.join(__dirname, 'cookies.json');
+            if (fs.existsSync(cookiePath)) {
+                const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
+                const token = cookies.find(c => c.name === 'auth_token');
+                if (token) headers['Authorization'] = token.value;
+            }
+        } catch(e) {}
+
+        const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
+        https.get(url, { headers, timeout: 10000 }, res => {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
