@@ -398,7 +398,8 @@ function fetchLiveList() {
                         return;
                     }
                 }
-                const cookiePath = path.join(__dirname, 'cookies.json');
+                let cookiePath = path.join(DATA_DIR, 'cookies.json');
+                if (!fs.existsSync(cookiePath)) cookiePath = path.join(__dirname, 'cookies.json');
                 if (fs.existsSync(cookiePath)) {
                     const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
                     const token = cookies.find(c => c.name === 'auth_token');
@@ -641,7 +642,8 @@ async function main() {
     
     // 🚀 쿠키(Cookie) 프리패스 장착!
     try {
-        const cookiePath = path.join(__dirname, 'cookies.json');
+        let cookiePath = path.join(DATA_DIR, 'cookies.json');
+        if (!fs.existsSync(cookiePath)) cookiePath = path.join(__dirname, 'cookies.json');
         if (fs.existsSync(cookiePath)) {
             let cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
             cookies = cookies.map(c => ({ ...c, url: CONFIG.siteBase }));
@@ -657,7 +659,10 @@ async function main() {
                 try { 
                     if (global.bgPage && !global.bgPage.isClosed()) {
                         await global.bgPage.reload({ waitUntil: 'networkidle2', timeout: 30000 });
-                        log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 완료');
+                        // 🚀 최신 쿠키 백업
+                        const currentCookies = await global.bgPage.cookies();
+                        fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
+                        log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
                     }
                 } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
             }, 10 * 60 * 1000);
@@ -804,6 +809,7 @@ async function main() {
                     if (targetVodKeys.includes(v.vod_key) || targetUserKeys.includes(v.user_key)) {
                         currentLiveVodKeys.add(v.vod_key);
                         if (!activeRooms.has(v.vod_key)) {
+                            if (global.keptRooms) global.keptRooms.delete(v.vod_key);
                             openRoom(v.vod_key, v.v_subject || v.user_key, v.user_key);
                         }
                     }
@@ -813,7 +819,11 @@ async function main() {
             for (const activeVodKey of activeRooms.keys()) {
                 if (!currentLiveVodKeys.has(activeVodKey)) {
                     // await closeRoom(activeVodKey); // 🚀 방송이 종료되더라도 봇이 나가지 않도록 주석 처리 (대시보드에서 삭제할 때만 퇴장)
-                    log(`[방 유지] 방송(${activeVodKey})이 종료되었지만 봇은 방에 남습니다.`);
+                    if (!global.keptRooms) global.keptRooms = new Set();
+                    if (!global.keptRooms.has(activeVodKey)) {
+                        log(`[방 유지] 방송(${activeVodKey})이 종료되었지만 봇은 방에 남습니다.`);
+                        global.keptRooms.add(activeVodKey);
+                    }
                 }
             }
         } catch (e) {
