@@ -865,11 +865,9 @@
        10. 실시간 DOM 감시 (MutationObserver)
     ================================================================ */
     let chatObserver = null;
-    let supportObserver = null;
 
     function startChatObserver() {
         const chatWrap = document.querySelector('.chat-area') || document.querySelector('.chat-wrap');
-        const supportArea = document.querySelector('.recently-support');
 
         if (chatWrap && !chatObserver) {
             chatObserver = new MutationObserver((mutations) => {
@@ -958,29 +956,7 @@
             logStatus("[시스템] 실시간 채팅 감시 시작.");
         }
 
-        if (supportArea && !supportObserver) {
-            supportObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType !== 1) return;
-
-                        if (node.classList.contains('support-item') || node.querySelector('.support-item')) {
-                            const targetNode = node.classList.contains('support-item') ? node : node.querySelector('.support-item');
-                            handleBubiSupport(targetNode);
-                        }
-                        if (node.classList.contains('display-area') || node.querySelector('.display-area')) {
-                            const supportItem = node.querySelector('.support-item');
-                            if (supportItem) handleBubiSupport(supportItem);
-                        }
-                    });
-                });
-            });
-
-            supportObserver.observe(supportArea, { childList: true, subtree: true });
-            logStatus("[시스템] 실시간 최근 후원 감시 시작.");
-        }
-
-        if (!chatWrap || !supportArea) {
+        if (!chatWrap) {
             setTimeout(startChatObserver, 1500);
         }
     }
