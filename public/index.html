@@ -127,7 +127,7 @@
                 <h2 style="margin-bottom:1.5rem;">로그인</h2>
                 <div class="form-group">
                     <label class="form-label">아이디 (ID)</label>
-                    <input type="text" id="loginId" class="form-input" placeholder="BJ 고유번호 또는 master">
+                    <input type="text" id="loginId" class="form-input" placeholder="고유방번호">
                 </div>
                 <div class="form-group">
                     <label class="form-label">비밀번호 (Password)</label>
@@ -212,6 +212,11 @@
                         </div>
                         <button class="btn btn-danger" onclick="deleteBJ(${t.id}, '${t.name}')">삭제</button>
                     </div>
+                    <div style="background:#030712; padding:10px; border-radius:10px; border:1px solid #1f2937; margin-top:10px; font-size: 0.9rem; color: #9ca3af;">
+                        <label style="margin-right:15px; cursor:pointer;"><input type="checkbox" onchange="toggleSettingMaster(${t.id}, 'enableCommands', this.checked)" ${t.settings && t.settings.enableCommands !== false ? 'checked' : ''}> 봇 작동</label>
+                        <label style="margin-right:15px; cursor:pointer;"><input type="checkbox" onchange="toggleSettingMaster(${t.id}, 'autoWelcome', this.checked)" ${t.settings && t.settings.autoWelcome !== false ? 'checked' : ''}> 자동 인사</label>
+                        <label style="cursor:pointer;"><input type="checkbox" onchange="toggleSettingMaster(${t.id}, 'autoAttendance', this.checked)" ${t.settings && t.settings.autoAttendance !== false ? 'checked' : ''}> 출석 반응</label>
+                    </div>
                 </div>
                 `;
             });
@@ -244,6 +249,16 @@
         if (!confirm(`[${name}] 비제이 봇을 목록에서 삭제하시겠습니까?`)) return;
         await fetch(`/api/targets/${id}`, { method: 'DELETE' });
         fetchMasterList();
+    }
+
+    async function toggleSettingMaster(id, key, value) {
+        try {
+            await fetch(`/api/targets/${id}/settings`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [key]: value })
+            });
+        } catch (e) { alert('설정 변경 실패'); }
     }
 
     // ==========================================
