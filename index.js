@@ -399,12 +399,19 @@ function fetchLiveList() {
                     }
                 }
                 let cookiePath = path.join(DATA_DIR, 'cookies.json');
-                if (!fs.existsSync(cookiePath)) cookiePath = path.join(__dirname, 'cookies.json');
+                const defaultCookiePath = path.join(__dirname, 'cookies.json');
+                
+                let rawCookies = [];
                 if (fs.existsSync(cookiePath)) {
-                    const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
-                    const token = cookies.find(c => c.name === 'auth_token');
-                    if (token) headers['Authorization'] = decodeURIComponent(token.value);
+                    rawCookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
                 }
+                
+                if (!rawCookies.find(c => c.name === 'auth_token') && fs.existsSync(defaultCookiePath)) {
+                    rawCookies = JSON.parse(fs.readFileSync(defaultCookiePath, 'utf8'));
+                }
+                
+                const token = rawCookies.find(c => c.name === 'auth_token');
+                if (token) headers['Authorization'] = decodeURIComponent(token.value);
             } catch(e) {}
         };
 
@@ -643,10 +650,19 @@ async function main() {
     // 🚀 쿠키(Cookie) 프리패스 장착!
     try {
         let cookiePath = path.join(DATA_DIR, 'cookies.json');
-        if (!fs.existsSync(cookiePath)) cookiePath = path.join(__dirname, 'cookies.json');
+        const defaultCookiePath = path.join(__dirname, 'cookies.json');
+        
+        let rawCookies = [];
         if (fs.existsSync(cookiePath)) {
-            let cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
-            cookies = cookies.map(c => ({ ...c, url: CONFIG.siteBase }));
+            rawCookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
+        }
+        
+        if (!rawCookies.find(c => c.name === 'auth_token') && fs.existsSync(defaultCookiePath)) {
+            rawCookies = JSON.parse(fs.readFileSync(defaultCookiePath, 'utf8'));
+        }
+        
+        if (rawCookies.length > 0) {
+            let cookies = rawCookies.map(c => ({ ...c, url: CONFIG.siteBase }));
             
             // 메인 백그라운드 탭 생성 (자동 갱신용)
             global.bgPage = await global.browser.newPage();
@@ -659,11 +675,14 @@ async function main() {
                 try { 
                     if (global.bgPage && !global.bgPage.isClosed()) {
                         await global.bgPage.reload({ waitUntil: 'networkidle2', timeout: 30000 });
-                        // 🚀 최신 쿠키 백업
+                        // 🚀 최신 쿠키 백업 (로그아웃 된 상태면 덮어쓰지 않음)
                         const currentCookies = await global.bgPage.cookies();
-                        fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
-                        log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
-                    }
+                        if (currentCookies.find(c => c.name === 'auth_token')) {
+                            fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
+                            log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
+                        } else {
+                            log('⚠️ [토큰 백업 실패] 백그라운드 탭 로그아웃 감지! 볼륨 덮어쓰기를 방지합니다.');
+                        }
                 } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
             }, 10 * 60 * 1000);
             

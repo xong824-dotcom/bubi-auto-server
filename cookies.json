@@ -1,7 +1,7 @@
 [
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1818675657.780137,
+    "expirationDate": 1819089716.078488,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_fwb",
@@ -14,7 +14,7 @@
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1818675657.917802,
+    "expirationDate": 1819089716.175494,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_ga",
@@ -40,7 +40,7 @@
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1791891658,
+    "expirationDate": 1792305716,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_fbp",
@@ -53,7 +53,7 @@
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1817811658,
+    "expirationDate": 1818225721,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_tt_enable_cookie",
@@ -66,7 +66,7 @@
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1817811658,
+    "expirationDate": 1818225721,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_ttp",
@@ -105,7 +105,7 @@
   },
   {
     "domain": "www.bubeelive.com",
-    "expirationDate": 1815577200,
+    "expirationDate": 1816009200,
     "hostOnly": true,
     "httpOnly": false,
     "name": "BuBeeLIVE-login-id-list",
@@ -115,96 +115,6 @@
     "session": false,
     "storeId": "0",
     "value": "%5B%22xong810%22%5D"
-  },
-  {
-    "domain": "www.bubeelive.com",
-    "hostOnly": true,
-    "httpOnly": false,
-    "name": "locale",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": true,
-    "storeId": "0",
-    "value": "ko"
-  },
-  {
-    "domain": ".bubeelive.com",
-    "expirationDate": 1791890888,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_gcl_aw",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "GCL.1784114888.Cj0KCQjw39zSBhDhARIsANammDtEUoiCtgUkLPuEVz3WYpnpxA-skI6lyHZr8qfxNL9MvY4MBaE6ZgAaAppaEALw_wcB"
-  },
-  {
-    "domain": ".bubeelive.com",
-    "expirationDate": 1791890888,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_gcl_gs",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "2.1.k1$i1784114883$u239746320"
-  },
-  {
-    "domain": "www.bubeelive.com",
-    "expirationDate": 1784201348.827707,
-    "hostOnly": true,
-    "httpOnly": false,
-    "name": "chatFontSize",
-    "path": "/",
-    "sameSite": "lax",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "1"
-  },
-  {
-    "domain": "www.bubeelive.com",
-    "expirationDate": 1784116255.450494,
-    "hostOnly": true,
-    "httpOnly": false,
-    "name": "auth_token",
-    "path": "/",
-    "sameSite": "lax",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwaS5idWJlZWxpdmUuY29tIiwic3ViIjoiMTQyMGY4NjctMTBlNi00YWY2LTg4ZTAtNjQ3OWQzOWJiYjhjIiwiaWQiOjk0MTM4Niwic2l0ZV9rZXkiOiIyIiwicm9sZXMiOlsiVVNFUiJdLCJpYXQiOjE3ODQxMTU2NDksImV4cCI6MTc4NDExNjU0OX0.hKbGwkJ8f0_3ZPQepzUWyULO_CbAm7zQ6JK8uGNmQPI"
-  },
-  {
-    "domain": "www.bubeelive.com",
-    "expirationDate": 1784374855.450912,
-    "hostOnly": true,
-    "httpOnly": false,
-    "name": "auth_refresh_token",
-    "path": "/",
-    "sameSite": "lax",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwaS5idWJlZWxpdmUuY29tIiwic3ViIjoiMTQyMGY4NjctMTBlNi00YWY2LTg4ZTAtNjQ3OWQzOWJiYjhjIiwiaWQiOjk0MTM4Niwic2l0ZV9rZXkiOiIyIiwicm9sZXMiOlsiVVNFUiJdLCJpc19yZWZyZXNoIjp0cnVlLCJpYXQiOjE3ODQxMTU2NDksImV4cCI6MTc4NDM3NDg0OX0.mM-fXa9ByIMtDAW3A9V4-Z7rV3yaSj8_dOCavMiBS7s"
-  },
-  {
-    "domain": "www.bubeelive.com",
-    "expirationDate": 1815577200,
-    "hostOnly": true,
-    "httpOnly": false,
-    "name": "BuBeeLIVE-join-order",
-    "path": "/",
-    "sameSite": "lax",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "ID%2CG%2CK"
   },
   {
     "domain": "www.bubeelive.com",
@@ -221,7 +131,71 @@
   },
   {
     "domain": "www.bubeelive.com",
-    "expirationDate": 1818675657.799841,
+    "hostOnly": true,
+    "httpOnly": false,
+    "name": "locale",
+    "path": "/",
+    "sameSite": "unspecified",
+    "secure": false,
+    "session": true,
+    "storeId": "0",
+    "value": "ko"
+  },
+  {
+    "domain": ".bubeelive.com",
+    "expirationDate": 1792305706,
+    "hostOnly": false,
+    "httpOnly": false,
+    "name": "_gcl_gs",
+    "path": "/",
+    "sameSite": "unspecified",
+    "secure": false,
+    "session": false,
+    "storeId": "0",
+    "value": "2.1.k1$i1784529700$u193084734"
+  },
+  {
+    "domain": "www.bubeelive.com",
+    "expirationDate": 1784530312.87406,
+    "hostOnly": true,
+    "httpOnly": false,
+    "name": "auth_token",
+    "path": "/",
+    "sameSite": "lax",
+    "secure": false,
+    "session": false,
+    "storeId": "0",
+    "value": "Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwaS5idWJlZWxpdmUuY29tIiwic3ViIjoiOTIwOTBhYTUtNzkzYy00NWRkLTllMjgtYzRlZWViNzE3Mzk0IiwiaWQiOjk0MTM4Niwic2l0ZV9rZXkiOiIyIiwicm9sZXMiOlsiVVNFUiJdLCJpYXQiOjE3ODQ1Mjk3MTQsImV4cCI6MTc4NDUzMDYxNH0.WPQMHqJtB4RFA1ZntP7RnRdM48zzu2ZQwOQazCFd8mQ"
+  },
+  {
+    "domain": "www.bubeelive.com",
+    "expirationDate": 1784788912.87451,
+    "hostOnly": true,
+    "httpOnly": false,
+    "name": "auth_refresh_token",
+    "path": "/",
+    "sameSite": "lax",
+    "secure": false,
+    "session": false,
+    "storeId": "0",
+    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwaS5idWJlZWxpdmUuY29tIiwic3ViIjoiOTIwOTBhYTUtNzkzYy00NWRkLTllMjgtYzRlZWViNzE3Mzk0IiwiaWQiOjk0MTM4Niwic2l0ZV9rZXkiOiIyIiwicm9sZXMiOlsiVVNFUiJdLCJpc19yZWZyZXNoIjp0cnVlLCJpYXQiOjE3ODQ1Mjk3MTQsImV4cCI6MTc4NDc4ODkxNH0.QH02LRIDj_2D9wIH-i_f3Fqr_lCBrLhZoiyRX3S59SY"
+  },
+  {
+    "domain": "www.bubeelive.com",
+    "expirationDate": 1816009200,
+    "hostOnly": true,
+    "httpOnly": false,
+    "name": "BuBeeLIVE-join-order",
+    "path": "/",
+    "sameSite": "lax",
+    "secure": false,
+    "session": false,
+    "storeId": "0",
+    "value": "ID%2CK%2CG"
+  },
+  {
+    "domain": "www.bubeelive.com",
+    "expirationDate": 1819089716.089903,
     "hostOnly": true,
     "httpOnly": false,
     "name": "wcs_bt",
@@ -230,11 +204,24 @@
     "secure": false,
     "session": false,
     "storeId": "0",
-    "value": "s_bfb9a7307e2:1784115657|1c72f84985a07d0:1784115657"
+    "value": "s_bfb9a7307e2:1784529716|1c72f84985a07d0:1784529716"
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1818675657.916525,
+    "expirationDate": 1792305716,
+    "hostOnly": false,
+    "httpOnly": false,
+    "name": "_gcl_aw",
+    "path": "/",
+    "sameSite": "unspecified",
+    "secure": false,
+    "session": false,
+    "storeId": "0",
+    "value": "GCL.1784529716.Cj0KCQjw6_HSBhCpARIsANvVltaoEcFzNHSXguPa_F0jHXac5GOP-sRTU1yjg6_NsQhn0qCFDP9YHR8aAsWWEALw_wcB"
+  },
+  {
+    "domain": ".bubeelive.com",
+    "expirationDate": 1819089716.174502,
     "hostOnly": false,
     "httpOnly": false,
     "name": "_ga_RQ3ZLCCKD0",
@@ -243,11 +230,11 @@
     "secure": false,
     "session": false,
     "storeId": "0",
-    "value": "GS2.1.s1784114887$o39$g1$t1784115657$j19$l0$h0"
+    "value": "GS2.1.s1784529706$o46$g1$t1784529716$j50$l0$h0"
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1817811659,
+    "expirationDate": 1818225721,
     "hostOnly": false,
     "httpOnly": false,
     "name": "ttcsid",
@@ -256,11 +243,11 @@
     "secure": false,
     "session": false,
     "storeId": "0",
-    "value": "1784114888594::IZXWAlBC7YFltcRyvfWV.34.1784115659239.0::1.767037.770244::764314.12.785.365::749224.21.741"
+    "value": "1784529706775::FNF4vis2c2nGYNmNEV5M.41.1784529721605.0::1.6215.14457::743.1.701.262::0.0.0"
   },
   {
     "domain": ".bubeelive.com",
-    "expirationDate": 1817811659,
+    "expirationDate": 1818225721,
     "hostOnly": false,
     "httpOnly": false,
     "name": "ttcsid_D8L48A3C77U8OIV6GPFG",
@@ -269,6 +256,6 @@
     "secure": false,
     "session": false,
     "storeId": "0",
-    "value": "1784114888587::epxJ6cWmKEc50SaKnGNh.31.1784115659240.1"
+    "value": "1784529706765::lSu68ADXBqZohL0qcRkC.38.1784529721605.1"
   }
 ]
