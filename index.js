@@ -138,10 +138,16 @@ function startDashboard() {
             fs.writeFileSync(dbPath, JSON.stringify(newDb, null, 2));
             
             // 실시간 봇(Puppeteer) 뇌에 주입!
-            if (global.livePage && !global.livePage.isClosed()) {
-                global.livePage.evaluate((db) => {
-                    if (window.updateBotDB) window.updateBotDB(db);
-                }, newDb).catch(() => {});
+            if (global.activeRooms) {
+                for (const [vod_key, p] of global.activeRooms.entries()) {
+                    if ((String(vod_key) === String(id) || String(p.user_key) === String(id)) && !p.isClosed()) {
+                        p.evaluate((db) => {
+                            if (typeof window.updateBotDB === 'function') {
+                                window.updateBotDB(db);
+                            }
+                        }, newDb).catch(() => {});
+                    }
+                }
             }
             
             res.json({ success: true });
