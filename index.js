@@ -96,6 +96,74 @@ function startDashboard() {
     // 정적 파일 서빙 (UI)
     app.use(express.static(path.join(__dirname, 'public')));
 
+    // 로그인 API
+    app.post('/api/login', (req, res) => {
+        const { id, password } = req.body;
+        const masterPw = process.env.MASTER_PASSWORD || 'master1234';
+        
+        if (id === 'master' && password === masterPw) {
+            return res.json({ success: true, role: 'master', token: 'master_token' });
+        }
+        
+        const target = targets.find(t => String(t.id) === String(id));
+        if (target && target.password === password) {
+            return res.json({ success: true, role: 'bj', token: String(id) });
+        }
+        
+        return res.status(401).json({ message: '아이디 또는 비밀번호가 틀렸습니다.' });
+    });
+
+    // 특정 봇 DB 가져오기
+    app.get('/api/bot-db/:id', (req, res) => {
+        const id = req.params.id;
+        const dbPath = path.join(DATA_DIR, `db_${id}.json`);
+        if (fs.existsSync(dbPath)) {
+            try {
+                const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+                res.json(db);
+            } catch (e) {
+                res.status(500).json({ message: 'DB 파싱 에러' });
+            }
+        } else {
+            res.json({});
+        }
+    });
+
+    // 특정 봇 DB 통째로 덮어쓰기 (클라이언트 대시보드 저장용)
+    app.post('/api/bot-db/:id', (req, res) => {
+        const id = req.params.id;
+        const newDb = req.body;
+        const dbPath = path.join(DATA_DIR, `db_${id}.json`);
+        try {
+            fs.writeFileSync(dbPath, JSON.stringify(newDb, null, 2));
+            
+            // 실시간 봇(Puppeteer) 뇌에 주입!
+            if (global.livePage && !global.livePage.isClosed()) {
+                global.livePage.evaluate((db) => {
+                    if (window.updateBotDB) window.updateBotDB(db);
+                }, newDb).catch(() => {});
+            }
+            
+            res.json({ success: true });
+        } catch (e) {
+            res.status(500).json({ message: 'DB 저장 실패' });
+        }
+    });
+
+    // 특정 비제이 비밀번호 변경
+    app.put('/api/targets/:id/password', (req, res) => {
+        const id = Number(req.params.id);
+        const { password } = req.body;
+        const target = targets.find(t => t.id === id);
+        if (target) {
+            target.password = password;
+            saveConfig();
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ message: '타겟을 찾을 수 없습니다.' });
+        }
+    });
+
     // 현재 타겟 목록 조회
     app.get('/api/targets', (req, res) => {
         res.json({
@@ -106,7 +174,7 @@ function startDashboard() {
 
     // 타겟 추가
     app.post('/api/targets', async (req, res) => {
-        let { id, name, type, settings } = req.body;
+        let { id, name, type, settings, password } = req.body;
         if (!id || !name || !type) return res.status(400).json({ message: '파라미터 누락' });
         
         // 🚀 편의 기능: 사용자가 방번호(vod_key)를 입력해도, 자동으로 평생 고유 ID(user_key)로 변환해주는 로직!
@@ -151,7 +219,7 @@ function startDashboard() {
         const defaultSettings = { autoAttendance: true, autoWelcome: true, enableCommands: true };
         const targetSettings = settings || defaultSettings;
 
-        targets.push({ id: Number(id), name, type, settings: targetSettings });
+        targets.push({ id: Number(id), name, type, settings: targetSettings, password: password || '1234' });
         saveConfig();
         log(`✅ 대시보드에서 타겟 추가됨: ${name} (${id} / ${type})`);
         res.json({ success: true });

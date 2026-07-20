@@ -35,421 +35,416 @@
                 radial-gradient(circle at 100% 100%, rgba(79, 70, 229, 0.1) 0%, transparent 50%);
         }
 
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            padding: 2rem;
-            margin: 2rem;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: fadeInDown 0.8s ease-out;
-        }
-
-        header h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #818cf8, #6366f1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        header p {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-        }
-
-        /* Action Bar */
-        .action-bar {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            padding: 1.5rem;
-            border-radius: 24px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            position: sticky;
-            top: 2rem;
-            z-index: 100;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        .search-box {
-            flex: 1;
-            position: relative;
-        }
-
-        .search-box input {
-            width: 100%;
-            background: #030712;
-            border: 1px solid var(--border-color);
-            padding: 12px 20px;
-            border-radius: 14px;
-            color: white;
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        .search-box input:focus {
-            border-color: var(--accent-primary);
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border-radius: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: inherit;
-        }
-
-        .btn-primary { background: var(--accent-primary); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -5px var(--accent-primary); }
-
-        .btn-secondary { background: var(--border-color); color: var(--text-main); }
-        .btn-secondary:hover { background: #374151; }
-
-        /* BJ List */
-        .bj-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            animation: fadeInUp 1s ease-out;
-        }
-
-        .bj-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: var(--transition);
-        }
-
-        .bj-card:hover {
-            transform: scale(1.02);
-            border-color: var(--accent-primary);
-            box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
-        }
-
-        .bj-info h3 { font-size: 1.25rem; margin-bottom: 0.25rem; }
-        .bj-info p { font-size: 0.875rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-        .badge {
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 6px;
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--accent-primary);
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .badge.live {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--accent-danger);
-            animation: pulse 2s infinite;
-        }
-
-        .btn-del-mini {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--accent-danger);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 1.2rem;
-        }
-
-        .btn-del-mini:hover { background: var(--accent-danger); color: white; transform: rotate(90deg); }
-
-        /* Modal */
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal {
-            background: var(--card-bg);
-            width: 90%;
-            max-width: 500px;
-            border-radius: 32px;
-            border: 1px solid var(--border-color);
-            padding: 2.5rem;
-            box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8);
-        }
-
-        .modal-title { font-size: 1.75rem; font-weight: 800; margin-bottom: 2rem; color: var(--accent-primary); }
+        .container { width: 100%; max-width: 1000px; padding: 2rem; margin: 2rem; }
+        header { text-align: center; margin-bottom: 3rem; animation: fadeInDown 0.8s ease-out; }
+        header h1 { font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #818cf8, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
+        header p { color: var(--text-muted); font-size: 1.1rem; }
+        
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
         .form-group { margin-bottom: 1.5rem; }
         .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; }
-        .form-input {
-            width: 100%;
-            background: #030712;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 14px;
-            color: white;
-            font-size: 1rem;
-            font-family: inherit;
-        }
-        select.form-input {
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1em;
-        }
+        .form-input { width: 100%; background: #030712; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; color: white; font-size: 1rem; font-family: inherit; }
+        .form-input:focus { border-color: var(--accent-primary); outline: none; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); }
+        select.form-input { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+        textarea.form-input { min-height: 100px; resize: vertical; }
+
+        .btn { padding: 12px 24px; border-radius: 14px; font-weight: 700; cursor: pointer; border: none; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; font-size: 1rem;}
+        .btn-primary { background: var(--accent-primary); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -5px var(--accent-primary); }
+        .btn-secondary { background: var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: #374151; }
+        .btn-danger { background: rgba(239,68,68,0.2); color: var(--accent-danger); border: 1px solid var(--accent-danger); }
+        .btn-danger:hover { background: var(--accent-danger); color: white; }
+        .btn-block { width: 100%; }
+
+        /* Login Screen */
+        .login-box { max-width: 400px; margin: 5rem auto; text-align: center; }
         
-        .modal-btns { display: flex; gap: 1rem; margin-top: 2rem; }
-        .btn-modal { flex: 1; padding: 14px; border-radius: 14px; font-weight: 700; cursor: pointer; border: none; font-size: 1rem; }
-        .btn-save { background: var(--accent-primary); color: white; }
-        .btn-cancel { background: #374151; color: white; }
-
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        /* Master Screen */
+        .bj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .bj-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.5rem; transition: var(--transition); }
+        .bj-card:hover { transform: scale(1.02); border-color: var(--accent-primary); box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5); }
+        .bj-info h3 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        .bj-info p { font-size: 0.875rem; color: var(--text-muted); }
+        .badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); font-weight: 800; }
+        .badge.live { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); animation: pulse 2s infinite; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; overflow-x: auto; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; font-weight: 600; cursor: pointer; padding: 0.5rem 1rem; transition: var(--transition); border-radius: 12px; }
+        .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .tab-btn.active { color: var(--accent-primary); background: rgba(99, 102, 241, 0.15); }
+        
+        /* List Items */
+        .list-item { background: #030712; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .list-info strong { color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem; }
+        
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        /* Loading Spinner */
-        .loader { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 5rem;
-            color: var(--text-muted);
-        }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>BJ Manager Pro</h1>
-        <p>Bubeelive AI 통합 비제이 관리 전용 센터</p>
-    </header>
-
-    <div class="action-bar">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="비제이 이름 또는 ID 검색..." oninput="filterList()">
-        </div>
-        <button class="btn btn-secondary" onclick="window.open('/commands.html', '_blank')">📖 명령어 가이드</button>
-        <button class="btn btn-secondary" onclick="fetchList()">🔄 새로고침</button>
-        <button class="btn btn-primary" onclick="openModal()">+ 비제이 등록</button>
-    </div>
-
-    <div id="bjGrid" class="bj-grid">
-        <div class="empty-state">
-            <div class="loader" style="margin: 0 auto 1.5rem;"></div>
-            <p>비제이 명단을 불러오는 중...</p>
-        </div>
-    </div>
-</div>
-
-<!-- Add Modal -->
-<div id="addOverlay" class="overlay">
-    <div class="modal">
-        <div class="modal-title" id="modalTitle">비제이 등록</div>
-        
-        <div id="singleMode">
-            <div class="form-group">
-                <label class="form-label">등록 타입</label>
-                <select id="bjType" class="form-input">
-                    <option value="user_key">유저 고유 ID (권장 - 방번호가 바뀌어도 추적)</option>
-                    <option value="vod_key">방 번호 (현재 라이브 중인 방)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">ID / 방 번호 (숫자)</label>
-                <input type="text" id="bjId" class="form-input" placeholder="예: 123456">
-            </div>
-            <div class="form-group">
-                <label class="form-label">비제이 닉네임 (메모용)</label>
-                <input type="text" id="bjName" class="form-input" placeholder="예: 홍길동">
-            </div>
-        </div>
-
-        <div class="modal-btns">
-            <button class="btn-modal btn-cancel" onclick="closeModal()">취소</button>
-            <button class="btn-modal btn-save" id="btnSubmit" onclick="submitAdd()">등록하기</button>
-        </div>
-    </div>
-</div>
+<div class="container" id="app"></div>
 
 <script>
-    let fullList = [];
+    let token = localStorage.getItem('bubi_token') || null;
+    let role = localStorage.getItem('bubi_role') || null;
+    let targetId = localStorage.getItem('bubi_id') || null;
+    
+    // DB Cache
+    let botDB = { customCmds: {}, notices: [], settings: {} };
 
-    window.onload = () => {
-        fetchList();
-    };
+    const app = document.getElementById('app');
 
-    async function fetchList() {
-        const grid = document.getElementById('bjGrid');
+    function render() {
+        if (!token) {
+            renderLogin();
+        } else if (role === 'master') {
+            renderMaster();
+        } else if (role === 'bj') {
+            renderBJ();
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        token = null; role = null; targetId = null;
+        render();
+    }
+
+    // ==========================================
+    // 1. LOGIN SCREEN
+    // ==========================================
+    function renderLogin() {
+        app.innerHTML = `
+            <header>
+                <h1>BJ Manager Pro</h1>
+                <p>부비라이브 통합 봇 관리 대시보드</p>
+            </header>
+            <div class="card login-box">
+                <h2 style="margin-bottom:1.5rem;">로그인</h2>
+                <div class="form-group">
+                    <label class="form-label">아이디 (ID)</label>
+                    <input type="text" id="loginId" class="form-input" placeholder="BJ 고유번호 또는 master">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호 (Password)</label>
+                    <input type="password" id="loginPw" class="form-input" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') doLogin()">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="doLogin()">접속하기</button>
+            </div>
+        `;
+    }
+
+    async function doLogin() {
+        const id = document.getElementById('loginId').value.trim();
+        const pw = document.getElementById('loginPw').value.trim();
+        if (!id || !pw) return alert('입력해주세요.');
+        
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, password: pw })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                token = data.token;
+                role = data.role;
+                targetId = id;
+                localStorage.setItem('bubi_token', token);
+                localStorage.setItem('bubi_role', role);
+                localStorage.setItem('bubi_id', targetId);
+                render();
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { alert('서버 연결 실패'); }
+    }
+
+    // ==========================================
+    // 2. MASTER SCREEN
+    // ==========================================
+    async function renderMaster() {
+        app.innerHTML = `
+            <header>
+                <h1>Master Dashboard</h1>
+                <p>모든 BJ 봇 관리 화면</p>
+                <br>
+                <button class="btn btn-secondary" onclick="logout()">로그아웃</button>
+            </header>
+            <div class="card">
+                <h2 style="margin-bottom:1rem;">신규 봇 추가</h2>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                    <select id="newType" class="form-input" style="flex:1;">
+                        <option value="user_key">고유 아이디(user_key)</option>
+                        <option value="vod_key">현재방송 방번호(vod_key)</option>
+                    </select>
+                    <input type="text" id="newId" class="form-input" style="flex:2;" placeholder="방 번호 또는 고유 아이디">
+                    <input type="text" id="newName" class="form-input" style="flex:2;" placeholder="BJ 이름 (선택)">
+                    <input type="text" id="newPw" class="form-input" style="flex:2;" placeholder="초기 비밀번호 부여">
+                    <button class="btn btn-primary" onclick="addBJ()">추가하기</button>
+                </div>
+            </div>
+            <div id="bjListContainer" class="bj-grid">로딩 중...</div>
+        `;
+        fetchMasterList();
+    }
+
+    async function fetchMasterList() {
         try {
             const res = await fetch('/api/targets');
             const data = await res.json();
+            const active = data.activeRooms || [];
+            let html = '';
             
-            fullList = data.targets || [];
-            const liveRooms = data.activeRooms || [];
-            
-            // 라이브 상태 마킹
-            fullList.forEach(item => {
-                item.isLive = liveRooms.includes(Number(item.id)) || liveRooms.includes(String(item.id));
-            });
-
-            renderList(fullList);
-        } catch (e) {
-            grid.innerHTML = '<div class="empty-state">❌ 목록을 불러오지 못했습니다. 서버 상태를 확인해주세요.</div>';
-        }
-    }
-
-    function renderList(list) {
-        const grid = document.getElementById('bjGrid');
-        grid.innerHTML = '';
-        
-        if (list.length === 0) {
-            grid.innerHTML = '<div class="empty-state">등록된 비제이가 없습니다. 우측 상단의 등록 버튼을 눌러 추가해주세요.</div>';
-            return;
-        }
-
-        list.forEach((info) => {
-            const card = document.createElement('div');
-            card.className = 'bj-card';
-            
-            // Default settings mapping (backward compatible)
-            const defaultSettings = { autoWelcome: false, autoAttendance: false, enableCommands: true };
-            const settings = { ...defaultSettings, ...(info.settings || {}) };
-            
-            card.innerHTML = `
-                <div class="bj-info">
-                    <h3>${info.name || '알수없음'}</h3>
-                    <p>ID: ${info.id} 
-                        <span class="badge ${info.isLive ? 'live' : ''}">${info.type === 'vod_key' ? '방번호' : '유저ID'}</span>
-                        ${info.isLive ? '<span class="badge live">LIVE O/A</span>' : ''}
-                    </p>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                        <div style="display: flex; gap: 15px; font-size: 0.9rem; align-items: center;">
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                                <input type="checkbox" onchange="updateSetting('${info.id}', 'autoAttendance', this.checked)" ${settings.autoAttendance ? 'checked' : ''}> 
-                                <span>자동 출석</span>
-                            </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                                <input type="checkbox" onchange="updateSetting('${info.id}', 'autoWelcome', this.checked)" ${settings.autoWelcome ? 'checked' : ''}> 
-                                <span>자동 인사</span>
-                            </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                                <input type="checkbox" onchange="updateSetting('${info.id}', 'enableCommands', this.checked)" ${settings.enableCommands ? 'checked' : ''}> 
-                                <span>명령어 반응(!)</span>
-                            </label>
+            data.targets.forEach(t => {
+                const isLive = active.includes(String(t.id));
+                html += `
+                <div class="bj-card">
+                    <div class="flex-between" style="margin-bottom:1rem;">
+                        <div class="bj-info">
+                            <h3>${t.name} <span class="badge ${isLive ? 'live' : ''}">${isLive ? '라이브러닝중' : '대기중'}</span></h3>
+                            <p>ID: ${t.id} | PW: ${t.password || '1234'}</p>
                         </div>
+                        <button class="btn btn-danger" onclick="deleteBJ(${t.id}, '${t.name}')">삭제</button>
                     </div>
                 </div>
-                <div class="btn-del-mini" onclick="deleteBj('${info.id}', '${info.name}')">×</div>
-            `;
-            grid.appendChild(card);
-        });
-    }
-
-    async function updateSetting(id, key, value) {
-        try {
-            const res = await fetch(`/api/targets/${id}/settings`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [key]: value })
+                `;
             });
-            if (!res.ok) alert('설정 변경에 실패했습니다.');
+            document.getElementById('bjListContainer').innerHTML = html || '<p>등록된 BJ가 없습니다.</p>';
         } catch (e) {
-            alert('서버 연결 실패');
+            document.getElementById('bjListContainer').innerHTML = '<p>불러오기 실패</p>';
         }
     }
 
-    function filterList() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = fullList.filter(info => {
-            return String(info.id).includes(query) || (info.name && info.name.toLowerCase().includes(query));
-        });
-        renderList(filtered);
-    }
-
-    function openModal() {
-        document.getElementById('bjId').value = '';
-        document.getElementById('bjName').value = '';
-        document.getElementById('addOverlay').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('addOverlay').style.display = 'none';
-    }
-
-    async function submitAdd() {
-        const type = document.getElementById('bjType').value;
-        const id = document.getElementById('bjId').value.trim();
-        const name = document.getElementById('bjName').value.trim();
-        
-        if (!id || !name) return alert("ID와 이름을 모두 입력해주세요.");
-        if (isNaN(id)) return alert("ID는 숫자만 입력 가능합니다.");
-
-        document.getElementById('btnSubmit').innerText = "처리 중...";
+    async function addBJ() {
+        const type = document.getElementById('newType').value;
+        const id = document.getElementById('newId').value.trim();
+        let name = document.getElementById('newName').value.trim();
+        if (!name) name = "홍길동";
+        const pw = document.getElementById('newPw').value.trim();
+        if (!id || !pw) return alert('아이디와 초기 비밀번호를 입력해주세요.');
         
         try {
             const res = await fetch('/api/targets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: Number(id), name, type })
+                body: JSON.stringify({ id, name, type, password: pw })
             });
-            
-            if (res.ok) {
-                alert(`[${name}] 등록 완료!`);
-                closeModal();
-                fetchList();
-            } else {
-                const err = await res.json();
-                alert(`등록 실패: ${err.message || '알 수 없는 오류'}`);
-            }
-        } catch (e) { 
-            alert("서버 연결 실패"); 
-        } finally {
-            document.getElementById('btnSubmit').innerText = "등록하기";
-        }
+            if (res.ok) fetchMasterList();
+            else alert((await res.json()).message);
+        } catch (e) { alert('실패'); }
     }
 
-    async function deleteBj(id, name) {
-        if (!confirm(`[${name}(${id})] 비제이를 삭제하시겠습니까?`)) return;
+    async function deleteBJ(id, name) {
+        if (!confirm(`[${name}] 비제이 봇을 목록에서 삭제하시겠습니까?`)) return;
+        await fetch(`/api/targets/${id}`, { method: 'DELETE' });
+        fetchMasterList();
+    }
 
+    // ==========================================
+    // 3. BJ CLIENT SCREEN
+    // ==========================================
+    let currentTab = 'settings';
+
+    async function renderBJ() {
+        // Fetch DB first
         try {
-            const res = await fetch(`/api/targets/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                alert(`삭제 완료되었습니다.`);
-                fetchList();
-            } else {
-                alert("삭제 실패");
+            const res = await fetch(`/api/bot-db/${targetId}`);
+            botDB = await res.json();
+            if (!botDB.customCmds) botDB.customCmds = {};
+            if (!botDB.notices) botDB.notices = [];
+            if (!botDB.settings) botDB.settings = {};
+        } catch(e) {
+            alert('DB 로드 실패');
+        }
+
+        app.innerHTML = `
+            <header>
+                <h1>내 방송 봇 관리</h1>
+                <p>ID: ${targetId} | 실시간 봇 제어 대시보드</p>
+                <br>
+                <button class="btn btn-secondary" onclick="logout()">로그아웃</button>
+            </header>
+            
+            <div class="tabs">
+                <button class="tab-btn ${currentTab==='settings'?'active':''}" onclick="changeTab('settings')">⚙️ 기본 설정</button>
+                <button class="tab-btn ${currentTab==='profile'?'active':''}" onclick="changeTab('profile')">📋 프로필/미션</button>
+                <button class="tab-btn ${currentTab==='commands'?'active':''}" onclick="changeTab('commands')">💬 커스텀 명령어</button>
+                <button class="tab-btn ${currentTab==='notices'?'active':''}" onclick="changeTab('notices')">📢 자동 안내문</button>
+            </div>
+            
+            <div class="card" id="tabContent"></div>
+        `;
+        renderTabContent();
+    }
+
+    function changeTab(tab) {
+        currentTab = tab;
+        renderBJ(); // Re-render shell to update tab active state, then content
+    }
+
+    function renderTabContent() {
+        const content = document.getElementById('tabContent');
+        if (currentTab === 'settings') {
+            content.innerHTML = `
+                <h2 style="margin-bottom:1.5rem;">⚙️ 봇 기본 동작 설정</h2>
+                
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="set_enableCommands" ${botDB.settings.enableCommands !== false ? 'checked' : ''} style="width:20px; height:20px;">
+                    <label class="form-label" style="margin:0; font-size:1.1rem;">봇 명령어 켜기 (끄면 봇이 대답 안함)</label>
+                </div>
+                
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="set_autoWelcome" ${botDB.settings.autoWelcome !== false ? 'checked' : ''} style="width:20px; height:20px;">
+                    <label class="form-label" style="margin:0; font-size:1.1rem;">자동 인사 켜기 (새로운 시청자 입장 시 인사)</label>
+                </div>
+                
+                <button class="btn btn-primary" onclick="saveSettings()">설정 저장하기 (실시간 반영)</button>
+                
+                <hr style="border-color:var(--border-color); margin: 3rem 0;">
+                <h3 style="margin-bottom:1rem; color:var(--accent-danger);">비밀번호 변경</h3>
+                <div style="display:flex; gap:1rem;">
+                    <input type="password" id="changePw" class="form-input" placeholder="새로운 비밀번호 입력">
+                    <button class="btn btn-danger" onclick="changePassword()">비밀번호 변경</button>
+                </div>
+            `;
+        } else if (currentTab === 'profile') {
+            content.innerHTML = `
+                <h2 style="margin-bottom:1.5rem;">📋 프로필 및 미션 설정</h2>
+                <div class="form-group">
+                    <label class="form-label">!프로필 (시청자가 !프로필 쳤을 때 나올 긴 글)</label>
+                    <textarea id="profileText" class="form-input" placeholder="프로필 텍스트 입력">${botDB.settings.profileText || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">!미션 (시청자가 !미션 쳤을 때 나올 내용)</label>
+                    <textarea id="missionText" class="form-input" placeholder="현재 미션 내용 입력">${botDB.settings.missionText || ''}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="saveProfile()">내용 저장하기 (실시간 반영)</button>
+            `;
+        } else if (currentTab === 'commands') {
+            let listHtml = '';
+            for (let cmd in botDB.customCmds) {
+                listHtml += `
+                <div class="list-item">
+                    <div class="list-info">
+                        <strong>!${cmd}</strong> <span>${botDB.customCmds[cmd]}</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteCmd('${cmd}')">삭제</button>
+                </div>`;
             }
-        } catch (e) { 
-            alert("서버 연결 실패"); 
+            if (!listHtml) listHtml = '<p style="color:var(--text-muted)">등록된 커스텀 명령어가 없습니다.</p>';
+
+            content.innerHTML = `
+                <h2 style="margin-bottom:1.5rem;">💬 커스텀 명령어 관리</h2>
+                <div style="display:flex; gap:1rem; margin-bottom:2rem;">
+                    <input type="text" id="cmdKey" class="form-input" style="flex:1" placeholder="명령어 (예: 노래)">
+                    <input type="text" id="cmdVal" class="form-input" style="flex:3" placeholder="답변 내용 (예: 스토커, 아이유...)">
+                    <button class="btn btn-primary" onclick="addCmd()">추가</button>
+                </div>
+                ${listHtml}
+            `;
+        } else if (currentTab === 'notices') {
+            let listHtml = '';
+            botDB.notices.forEach((n, idx) => {
+                listHtml += `
+                <div class="list-item">
+                    <div class="list-info">
+                        <strong style="color:var(--accent-success)">${n.intervalMs / 60000}분 마다</strong> 
+                        <span>${n.text}</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteNotice(${idx})">삭제</button>
+                </div>`;
+            });
+            if (!listHtml) listHtml = '<p style="color:var(--text-muted)">등록된 자동 안내문이 없습니다.</p>';
+
+            content.innerHTML = `
+                <h2 style="margin-bottom:1.5rem;">📢 자동 안내문 관리</h2>
+                <div style="display:flex; gap:1rem; margin-bottom:2rem;">
+                    <input type="number" id="notMin" class="form-input" style="flex:1" placeholder="몇 분마다? (예: 10)">
+                    <input type="text" id="notText" class="form-input" style="flex:3" placeholder="안내 텍스트 (예: 추천 즐찾 부탁드려요!)">
+                    <button class="btn btn-primary" onclick="addNotice()">추가</button>
+                </div>
+                ${listHtml}
+            `;
         }
     }
+
+    async function saveDBToServer() {
+        try {
+            const res = await fetch(`/api/bot-db/${targetId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(botDB)
+            });
+            if (res.ok) alert('저장 및 실시간 동기화 완료!');
+            else alert('저장 실패');
+        } catch (e) { alert('서버 연결 실패'); }
+        renderTabContent();
+    }
+
+    function saveSettings() {
+        botDB.settings.enableCommands = document.getElementById('set_enableCommands').checked;
+        botDB.settings.autoWelcome = document.getElementById('set_autoWelcome').checked;
+        saveDBToServer();
+    }
+
+    function saveProfile() {
+        botDB.settings.profileText = document.getElementById('profileText').value;
+        botDB.settings.missionText = document.getElementById('missionText').value;
+        saveDBToServer();
+    }
+
+    function addCmd() {
+        const k = document.getElementById('cmdKey').value.trim().replace(/^!/, '');
+        const v = document.getElementById('cmdVal').value.trim();
+        if (!k || !v) return;
+        botDB.customCmds[k] = v;
+        saveDBToServer();
+    }
+
+    function deleteCmd(k) {
+        if (!confirm(`!${k} 명령어를 삭제하시겠습니까?`)) return;
+        delete botDB.customCmds[k];
+        saveDBToServer();
+    }
+
+    function addNotice() {
+        const m = parseInt(document.getElementById('notMin').value);
+        const t = document.getElementById('notText').value.trim();
+        if (!m || !t || m < 1) return alert('정상적인 분(min)과 내용을 입력하세요.');
+        botDB.notices.push({ intervalMs: m * 60000, text: t });
+        saveDBToServer();
+    }
+
+    function deleteNotice(idx) {
+        if (!confirm('이 안내문을 삭제하시겠습니까?')) return;
+        botDB.notices.splice(idx, 1);
+        saveDBToServer();
+    }
+
+    async function changePassword() {
+        const pw = document.getElementById('changePw').value.trim();
+        if (!pw) return alert('새 비밀번호를 입력해주세요.');
+        try {
+            const res = await fetch(`/api/targets/${targetId}/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw })
+            });
+            if (res.ok) {
+                alert('비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인하세요.');
+                logout();
+            } else alert('변경 실패');
+        } catch(e) { alert('서버 오류'); }
+    }
+
+    // 초기 실행
+    render();
 </script>
 
 </body>
