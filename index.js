@@ -733,8 +733,42 @@ async function main() {
         p.on('request', req => {
             const rt = req.resourceType();
             const u = req.url().toLowerCase();
-            if (rt === 'media' || u.endsWith('.ts') || u.endsWith('.m3u8')) req.abort();
-            else req.continue();
+            if (
+                rt === 'media' || 
+                u.endsWith('.ts') || 
+                u.endsWith('.m3u8') || 
+                u.endsWith('.flv') || 
+                u.includes('live-video') || 
+                u.includes('/stream/') || 
+                u.includes('.mp4')
+            ) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
+
+        // 🚀 비디오 재생 완벽 차단 (CPU/메모리 절약)
+        await p.evaluateOnNewDocument(() => {
+            Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+                configurable: true,
+                get: () => function() { return Promise.resolve(); }
+            });
+            Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+                configurable: true,
+                get: () => function() {}
+            });
+            Object.defineProperty(HTMLMediaElement.prototype, 'load', {
+                configurable: true,
+                get: () => function() {}
+            });
+            // DOM이 로드되면 비디오 태그 자체를 계속해서 삭제
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll('video').forEach(v => v.remove());
+            });
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, { childList: true, subtree: true });
+            });
         });
 
         // 🚀 대시보드 설정 및 서버 영구 DB를 브라우저 컨텍스트로 주입
