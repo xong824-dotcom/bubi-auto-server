@@ -333,11 +333,11 @@
                 <h2 style="margin-bottom:1.5rem;">📋 프로필 및 미션 설정</h2>
                 <div class="form-group">
                     <label class="form-label">!프로필 (시청자가 !프로필 쳤을 때 나올 긴 글)</label>
-                    <textarea id="profileText" class="form-input" placeholder="프로필 텍스트 입력">${botDB.settings.profileText || ''}</textarea>
+                    <textarea id="profileText" class="form-input" placeholder="프로필 텍스트 입력">${botDB.settings.bjProfileText || ''}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">!미션 (시청자가 !미션 쳤을 때 나올 내용)</label>
-                    <textarea id="missionText" class="form-input" placeholder="현재 미션 내용 입력">${botDB.settings.missionText || ''}</textarea>
+                    <textarea id="missionText" class="form-input" placeholder="현재 미션 내용 입력">${botDB.settings.bjMissionText || ''}</textarea>
                 </div>
                 <button class="btn btn-primary" onclick="saveProfile()">내용 저장하기 (실시간 반영)</button>
             `;
@@ -417,8 +417,8 @@
     }
 
     function saveProfile() {
-        botDB.settings.profileText = document.getElementById('profileText').value;
-        botDB.settings.missionText = document.getElementById('missionText').value;
+        botDB.settings.bjProfileText = document.getElementById('profileText').value;
+        botDB.settings.bjMissionText = document.getElementById('missionText').value;
         saveDBToServer();
     }
 
