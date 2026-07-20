@@ -890,7 +890,6 @@ async function main() {
             window.BOT_SETTINGS = ${JSON.stringify(settings)};
             window.BOT_DB = ${JSON.stringify(initialDB)};
             window.ROOM_KEY = '${roomDbKey}';
-            window.VOD_KEY = '${vod_key}';
         `);
 
         // 🚀 저장 함수(exposeFunction)
