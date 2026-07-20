@@ -536,17 +536,17 @@
 
     function getRankOutput(rankData, title, limit = 10) {
         if (!rankData || Object.keys(rankData).length === 0) {
-            return `📊 [${title}] 오늘 아직 기록된 채팅이 없습니다.`;
+            queueMessage(`📊 [${title}] 아직 기록된 채팅이 없습니다.`);
+            return;
         }
         const sorted = Object.values(rankData)
             .sort((a, b) => b.count - a.count)
             .slice(0, limit);
 
-        let msg = `📊 [${title} TOP ${limit}]\n`;
+        queueMessage(`📊 [${title} TOP ${limit}]`);
         sorted.forEach((item, idx) => {
-            msg += `${idx + 1}등: ${item.nick} (${item.count}회)\n`;
+            queueMessage(`${idx + 1}등: ${item.nick} (${item.count}회)`);
         });
-        return msg.trim();
     }
 
     /* ================================================================
@@ -564,9 +564,15 @@
 
         if (cmd === '!명령어' || cmd === '!도움말') {
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [매니저 명령어]`);
+                queueMessage(`!등록 [단어] [내용] / !삭제 [단어]`);
+                queueMessage(`!프로필등록 / !미션등록 / !킵 / !킵삭제`);
+                queueMessage(`!안내문등록 [분] [내용] / !안내문종료 [번호]`);
+                queueMessage(`👤 [일반 명령어]`);
+                queueMessage(`!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [일반 명령어]`);
+                queueMessage(`!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             }
         }
         else if (cmd === '!출석') {
@@ -594,12 +600,11 @@
             
             // 가장 최근에 본 10명만 보여주기
             const recent = todaysFortunes.slice(-10);
-            let msg = `🔮 [오늘의 운세 기록] (총 ${todaysFortunes.length}명)\n`;
+            queueMessage(`🔮 [오늘의 운세 기록] (총 ${todaysFortunes.length}명)`);
             recent.forEach((item, idx) => {
                 const name = item.nick || '익명';
-                msg += `${idx + 1}. ${name}님 (${item.score}점)\n`;
+                queueMessage(`${idx + 1}. ${name}님 (${item.score}점)`);
             });
-            queueMessage(msg.trim());
         }
         else if (cmd === '!타임' || cmd === '!업타임') {
             const diffSec = Math.floor((Date.now() - START_MS) / 1000);
@@ -672,11 +677,10 @@
                 queueMessage(`📋 현재 등록된 안내문이 없습니다.`);
                 return;
             }
-            let text = `📋 [안내문 목록]\n`;
+            queueMessage(`📋 [안내문 목록]`);
             DB.notices.forEach(n => {
-                text += `${n.id}번 (${n.intervalMin}분) : ${n.msg}\n`;
+                queueMessage(`${n.id}번 (${n.intervalMin}분) : ${n.msg}`);
             });
-            queueMessage(text.trim());
         }
         // ================= [ 텍스트 프로필 등록 (호스트/매니저 전용) ] =================
         else if (cmd === '!프로필등록') {
@@ -710,9 +714,8 @@
                     finalLines.push(...wrappedLines);
                 });
 
-                // 분할하지 않고, 줄바꿈(\n)으로 합쳐서 **하나의 메시지**로 전송
-                const fullMsg = `📢 [프로필]\n` + finalLines.join('\n');
-                queueMessage(fullMsg);
+                queueMessage(`📢 [프로필]`);
+                finalLines.forEach(line => queueMessage(line));
             } else {
                 queueMessage(`❌ 등록된 프로필이 없습니다. '!프로필등록 [내용]' 명령어로 먼저 등록해주세요!`);
             }
@@ -732,8 +735,8 @@
                     finalLines.push(...wrappedLines);
                 });
 
-                const fullMsg = `📜 [미션 목록]\n` + finalLines.join('\n');
-                queueMessage(fullMsg);
+                queueMessage(`📜 [미션 목록]`);
+                finalLines.forEach(line => queueMessage(line));
             } else {
                 queueMessage(`❌ 등록된 미션이 없습니다. '!미션등록 [내용]' 명령어로 먼저 등록해주세요!`);
             }
@@ -774,11 +777,10 @@
         else if (cmd === '!킵목록' || cmd === '!메모목록') {
             const keeps = DB.keeps || [];
             if (keeps.length > 0) {
-                let msg = `📌 [저장된 메모 목록]\n`;
+                queueMessage(`📌 [저장된 메모 목록]`);
                 keeps.forEach((item, idx) => {
-                    msg += `${idx + 1}. [${item.time}] ${item.text}\n`;
+                    queueMessage(`${idx + 1}. [${item.time}] ${item.text}`);
                 });
-                queueMessage(msg.trim());
             } else {
                 queueMessage(`📌 저장된 메모가 없습니다.`);
             }
@@ -803,20 +805,17 @@
         else if (cmd === '!채팅순위' || cmd === '!오늘순위') {
             const limit = parseInt(tokens[1]) || 10;
             const today = getToday();
-            const output = getRankOutput(DB.dailyRank?.[today], "오늘 채팅 순위", limit);
-            queueMessage(output);
+            getRankOutput(DB.dailyRank?.[today], "오늘 채팅 순위", limit);
         }
         else if (cmd === '!어제순위' || cmd === '!어제채팅순위') {
             const limit = parseInt(tokens[1]) || 10;
             const yesterday = getYesterday();
-            const output = getRankOutput(DB.dailyRank?.[yesterday], "어제 채팅 순위", limit);
-            queueMessage(output);
+            getRankOutput(DB.dailyRank?.[yesterday], "어제 채팅 순위", limit);
         }
         else if (cmd === '!한달순위' || cmd === '!월간순위') {
             const limit = parseInt(tokens[1]) || 10;
             const month = getMonth();
-            const output = getRankOutput(DB.monthRank?.[month], "이번 달 채팅 순위", limit);
-            queueMessage(output);
+            getRankOutput(DB.monthRank?.[month], "이번 달 채팅 순위", limit);
         }
         else if (cmd === '!후원순위' || cmd === '!기프트순위' || cmd === '!스티커순위') {
             const limit = parseInt(tokens[1]) || 10;
@@ -829,11 +828,10 @@
                 queueMessage(`📊 오늘 후원 기록이 아직 없습니다.`);
                 return;
             }
-            let msg = `📊 [오늘의 후원 순위 TOP ${limit}]\n`;
+            queueMessage(`📊 [오늘의 후원 순위 TOP ${limit}]`);
             sorted.forEach(([user, count], idx) => {
-                msg += `${idx + 1}등: ${user} (${count}개)\n`;
+                queueMessage(`${idx + 1}등: ${user} (${count}개)`);
             });
-            queueMessage(msg.trim());
         }
         // ================= [ 커스텀 명령어 등록 기능 ] =================
         else if (cmd === '!등록' || cmd === '!명령어등록') {
