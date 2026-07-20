@@ -396,8 +396,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(botDB)
             });
-            if (res.ok) alert('저장 및 실시간 동기화 완료!');
-            else alert('저장 실패');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.injected) {
+                    alert('✅ 저장 및 현재 방송 중인 봇에 실시간 반영이 완료되었습니다!');
+                } else {
+                    alert('⚠️ 저장은 완료되었으나, 현재 봇이 방송방에 켜져 있지 않습니다.\n(다음 방송 봇 구동 시 적용됩니다.)');
+                }
+            } else {
+                alert('저장 실패');
+            }
         } catch (e) { alert('서버 연결 실패'); }
         renderTabContent();
     }

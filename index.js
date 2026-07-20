@@ -138,6 +138,7 @@ function startDashboard() {
             fs.writeFileSync(dbPath, JSON.stringify(newDb, null, 2));
             
             // 실시간 봇(Puppeteer) 뇌에 주입!
+            let injected = false;
             if (global.activeRooms) {
                 for (const [vod_key, p] of global.activeRooms.entries()) {
                     if ((String(vod_key) === String(id) || String(p.user_key) === String(id)) && !p.isClosed()) {
@@ -146,11 +147,12 @@ function startDashboard() {
                                 window.updateBotDB(db);
                             }
                         }, newDb).catch(() => {});
+                        injected = true;
                     }
                 }
             }
             
-            res.json({ success: true });
+            res.json({ success: true, injected });
         } catch (e) {
             res.status(500).json({ message: 'DB 저장 실패' });
         }
