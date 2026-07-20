@@ -504,6 +504,11 @@
             if (!DB.userGifts[today]) DB.userGifts[today] = {};
             DB.userGifts[today][nick] = (DB.userGifts[today][nick] || 0) + amount;
 
+            const vod = window.VOD_KEY || today;
+            if (!DB.roomGifts) DB.roomGifts = {};
+            if (!DB.roomGifts[vod]) DB.roomGifts[vod] = {};
+            DB.roomGifts[vod][nick] = (DB.roomGifts[vod][nick] || 0) + amount;
+
             saveDB();
 
         } catch (e) {
@@ -522,6 +527,15 @@
         }
         DB.dailyRank[today][userId].count++;
         DB.dailyRank[today][userId].nick = nick;
+
+        const vod = window.VOD_KEY || today;
+        if (!DB.roomRank) DB.roomRank = {};
+        if (!DB.roomRank[vod]) DB.roomRank[vod] = {};
+        if (!DB.roomRank[vod][userId]) {
+            DB.roomRank[vod][userId] = { nick, count: 0 };
+        }
+        DB.roomRank[vod][userId].count++;
+        DB.roomRank[vod][userId].nick = nick;
 
         if (!DB.monthRank) DB.monthRank = {};
         if (!DB.monthRank[month]) DB.monthRank[month] = {};
@@ -802,10 +816,15 @@
             }
         }
         // ================= [ 순위 집계 기능 ] =================
-        else if (cmd === '!채팅순위' || cmd === '!오늘순위') {
+        else if (cmd === '!채팅순위') {
+            const limit = parseInt(tokens[1]) || 10;
+            const vod = window.VOD_KEY || getToday();
+            getRankOutput(DB.roomRank?.[vod], "현재 방송 채팅 순위", limit);
+        }
+        else if (cmd === '!오늘순위') {
             const limit = parseInt(tokens[1]) || 10;
             const today = getToday();
-            getRankOutput(DB.dailyRank?.[today], "오늘 채팅 순위", limit);
+            getRankOutput(DB.dailyRank?.[today], "오늘 누적 채팅 순위", limit);
         }
         else if (cmd === '!어제순위' || cmd === '!어제채팅순위') {
             const limit = parseInt(tokens[1]) || 10;
@@ -819,6 +838,22 @@
         }
         else if (cmd === '!후원순위' || cmd === '!기프트순위' || cmd === '!스티커순위') {
             const limit = parseInt(tokens[1]) || 10;
+            const vod = window.VOD_KEY || getToday();
+            const gifts = DB.roomGifts?.[vod] || {};
+            const sorted = Object.entries(gifts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, limit);
+            if (!sorted.length) {
+                queueMessage(`📊 현재 방송의 후원 기록이 아직 없습니다.`);
+                return;
+            }
+            queueMessage(`📊 [현재 방송 후원 순위 TOP ${limit}]`);
+            sorted.forEach(([user, count], idx) => {
+                queueMessage(`${idx + 1}등: ${user} (${count}개)`);
+            });
+        }
+        else if (cmd === '!오늘후원순위') {
+            const limit = parseInt(tokens[1]) || 10;
             const today = getToday();
             const gifts = DB.userGifts?.[today] || {};
             const sorted = Object.entries(gifts)
@@ -828,7 +863,7 @@
                 queueMessage(`📊 오늘 후원 기록이 아직 없습니다.`);
                 return;
             }
-            queueMessage(`📊 [오늘의 후원 순위 TOP ${limit}]`);
+            queueMessage(`📊 [오늘 누적 후원 순위 TOP ${limit}]`);
             sorted.forEach(([user, count], idx) => {
                 queueMessage(`${idx + 1}등: ${user} (${count}개)`);
             });
