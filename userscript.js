@@ -556,9 +556,9 @@
 
         if (cmd === '!명령어' || cmd === '!도움말') {
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호] / !안내문목록\n\n👤 [일반 명령어]\n!출석 / !운세 / !운세기록 / !타임 / !주사위 [숫자] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 [숫자] / !후원순위 [숫자] / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !운세기록 / !타임 / !주사위 [숫자] / !뽑기 [후보들] / !프로필 / !미션 / !킵목록 / !채팅순위 [숫자] / !후원순위 [숫자] / !어제순위 / !한달순위`);
+                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위`);
             }
         }
         else if (cmd === '!출석') {
@@ -826,6 +826,51 @@
                 msg += `${idx + 1}등: ${user} (${count}개)\n`;
             });
             queueMessage(msg.trim());
+        }
+        // ================= [ 커스텀 명령어 등록 기능 ] =================
+        else if (cmd === '!등록' || cmd === '!명령어등록') {
+            if (!isHostOrManager) {
+                queueMessage(`❌ 명령어 등록은 호스트와 매니저만 가능합니다.`);
+                return;
+            }
+            const keyword = tokens[1];
+            const content = text.split(keyword)[1]?.trim();
+            if (!keyword || !content) {
+                queueMessage(`❌ 사용법: !등록 [단어] [내용] (예: !등록 노래 현재 재생중인 곡입니다)`);
+                return;
+            }
+            let cleanKey = keyword.startsWith('!') ? keyword.substring(1) : keyword;
+            
+            if (!DB.customCmds) DB.customCmds = {};
+            DB.customCmds[cleanKey] = content;
+            saveDB();
+            queueMessage(`✅ [!${cleanKey}] 명령어 등록 완료! 이제 채팅창에 !${cleanKey}를 치면 봇이 대답합니다.`);
+        }
+        else if (cmd === '!삭제' || cmd === '!명령어삭제') {
+            if (!isHostOrManager) {
+                queueMessage(`❌ 명령어 삭제는 호스트와 매니저만 가능합니다.`);
+                return;
+            }
+            const keyword = tokens[1];
+            if (!keyword) {
+                queueMessage(`❌ 삭제할 단어를 적어주세요. (예: !삭제 노래)`);
+                return;
+            }
+            let cleanKey = keyword.startsWith('!') ? keyword.substring(1) : keyword;
+            if (!DB.customCmds || !DB.customCmds[cleanKey]) {
+                queueMessage(`❌ 등록되지 않은 명령어입니다.`);
+                return;
+            }
+            delete DB.customCmds[cleanKey];
+            saveDB();
+            queueMessage(`🗑️ [!${cleanKey}] 명령어 삭제 완료!`);
+        }
+        else {
+            // 등록된 커스텀 명령어인지 확인
+            const cleanKey = cmd.startsWith('!') ? cmd.substring(1) : cmd;
+            if (DB.customCmds && DB.customCmds[cleanKey]) {
+                queueMessage(DB.customCmds[cleanKey]);
+            }
         }
     }
 
