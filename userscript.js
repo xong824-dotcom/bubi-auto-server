@@ -423,11 +423,23 @@
 
     function handleBubiSupport(node) {
         try {
-            const userNameEl = node.querySelector('.user-name');
-            const summaryEl = node.querySelector('.summary');
-            if (!userNameEl || !summaryEl) return;
+            let nickEl = node.querySelector('.user-name');
+            let summaryEl = node.querySelector('.summary');
+            
+            let isNewFormat = false;
+            // 새로운 donation-card 구조 대응
+            if (!nickEl || !summaryEl) {
+                const textNodes = node.querySelectorAll('.donation-text .line');
+                if (textNodes.length >= 2) {
+                    nickEl = textNodes[0].querySelector('.emphasis');
+                    summaryEl = textNodes[1].querySelector('.emphasis');
+                    isNewFormat = true;
+                }
+            }
 
-            const nick = userNameEl.innerText.trim();
+            if (!nickEl || !summaryEl) return;
+
+            let nick = nickEl.innerText.trim();
             const summaryText = summaryEl.innerText.trim(); 
             
             const lowerSummary = summaryText.toLowerCase();
@@ -1011,8 +1023,14 @@
                             }
                         }
 
-                        if (node.classList.contains('support-item') || node.querySelector('.support-item')) {
-                            const targetNode = node.classList.contains('support-item') ? node : node.querySelector('.support-item');
+                        let targetNode = null;
+                        if (node.classList && (node.classList.contains('support-item') || node.classList.contains('donation-card'))) {
+                            targetNode = node;
+                        } else if (node.querySelector) {
+                            targetNode = node.querySelector('.support-item') || node.querySelector('.donation-card');
+                        }
+                        
+                        if (targetNode) {
                             handleBubiSupport(targetNode);
                         }
                     });
