@@ -394,11 +394,13 @@
         } else if (currentTab === 'notices') {
             let listHtml = '';
             botDB.notices.forEach((n, idx) => {
+                const min = n.intervalMin || (n.intervalMs / 60000);
+                const txt = n.msg || n.text;
                 listHtml += `
                 <div class="list-item">
                     <div class="list-info">
-                        <strong style="color:var(--accent-success)">${n.intervalMs / 60000}분 마다</strong> 
-                        <span>${n.text}</span>
+                        <strong style="color:var(--accent-success)">${min}분 주기</strong> 
+                        <span>${txt}</span>
                     </div>
                     <button class="btn btn-danger" onclick="deleteNotice(${idx})">삭제</button>
                 </div>`;
@@ -473,8 +475,9 @@
     function addNotice() {
         const m = parseInt(document.getElementById('notMin').value);
         const t = document.getElementById('notText').value.trim();
-        if (!m || !t || m < 1) return alert('정상적인 분(min)과 내용을 입력하세요.');
-        botDB.notices.push({ intervalMs: m * 60000, text: t });
+        if (!m || !t || m < 1) return alert('입력값(min)을 모두 입력하세요.');
+        const newId = botDB.notices.length > 0 ? Math.max(...botDB.notices.map(n => n.id || 0)) + 1 : 1;
+        botDB.notices.push({ id: newId, intervalMin: m, msg: t, lastSent: Date.now() });
         saveDBToServer();
     }
 
