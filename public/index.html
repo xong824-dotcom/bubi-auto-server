@@ -92,6 +92,7 @@
     let token = localStorage.getItem('bubi_token') || null;
     let role = localStorage.getItem('bubi_role') || null;
     let targetId = localStorage.getItem('bubi_id') || null;
+    let masterMode = false;
     
     // DB Cache
     let botDB = { customCmds: {}, notices: [], settings: {} };
@@ -99,10 +100,24 @@
     const app = document.getElementById('app');
 
     function render() {
-        // 로그인 귀찮음 방지: 무조건 마스터 대시보드로 직행
-        role = 'master';
-        token = 'master_token';
-        renderMaster();
+        const urlParams = new URLSearchParams(window.location.search);
+        // ?admin=1 로 접속 시 로그인 생략하고 마스터로 진입
+        if (urlParams.get('admin') === '1') {
+            role = 'master';
+            token = 'master_token';
+            masterMode = true;
+            renderMaster();
+            return;
+        }
+
+        if (!token) {
+            renderLogin();
+        } else if (role === 'master') {
+            masterMode = true;
+            renderMaster();
+        } else if (role === 'bj') {
+            renderBJ();
+        }
     }
 
     function logout() {
@@ -207,7 +222,10 @@
                             <h3>${t.name} <span class="badge ${isLive ? 'live' : ''}">${isLive ? '라이브러닝중' : '대기중'}</span></h3>
                             <p>ID: ${t.id} | PW: ${t.password || '1234'}</p>
                         </div>
-                        <button class="btn btn-danger" onclick="deleteBJ(${t.id}, '${t.name}')">삭제</button>
+                        <div>
+                            <button class="btn btn-secondary" style="margin-right:0.5rem;" onclick="goToBJ(${t.id})">⚙️ 설정</button>
+                            <button class="btn btn-danger" onclick="deleteBJ(${t.id}, '${t.name}')">삭제</button>
+                        </div>
                     </div>
                     <div style="background:#030712; padding:10px; border-radius:10px; border:1px solid #1f2937; margin-top:10px; font-size: 0.9rem; color: #9ca3af;">
                         <label style="margin-right:15px; cursor:pointer;"><input type="checkbox" onchange="toggleSettingMaster(${t.id}, 'enableCommands', this.checked)" ${t.settings && t.settings.enableCommands !== false ? 'checked' : ''}> 봇 작동</label>
@@ -258,6 +276,11 @@
         } catch (e) { alert('설정 변경 실패'); }
     }
 
+    function goToBJ(id) {
+        targetId = id;
+        renderBJ();
+    }
+
     // ==========================================
     // 3. BJ CLIENT SCREEN
     // ==========================================
@@ -280,7 +303,10 @@
                 <h1>내 방송 봇 관리</h1>
                 <p>ID: ${targetId} | 실시간 봇 제어 대시보드</p>
                 <br>
-                <button class="btn btn-secondary" onclick="logout()">로그아웃</button>
+                ${masterMode ? 
+                    `<button class="btn btn-primary" onclick="renderMaster()">⬅️ 마스터 화면으로 돌아가기</button>` : 
+                    `<button class="btn btn-secondary" onclick="logout()">로그아웃</button>`
+                }
             </header>
             
             <div class="tabs">
