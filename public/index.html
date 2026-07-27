@@ -99,13 +99,10 @@
     const app = document.getElementById('app');
 
     function render() {
-        if (!token) {
-            renderLogin();
-        } else if (role === 'master') {
-            renderMaster();
-        } else if (role === 'bj') {
-            renderBJ();
-        }
+        // 로그인 귀찮음 방지: 무조건 마스터 대시보드로 직행
+        role = 'master';
+        token = 'master_token';
+        renderMaster();
     }
 
     function logout() {
