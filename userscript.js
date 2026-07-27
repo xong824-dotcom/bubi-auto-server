@@ -470,13 +470,27 @@
 
     function handleEffectSupport(node) {
         try {
-            const nickEl = node.querySelector('.nick') || node.querySelector('.donation-nick');
-            const honeyEl = node.querySelector('.ic-honey') || node.querySelector('.honey-cnt');
+            let nickEl = node.querySelector('.nick') || node.querySelector('.donation-nick');
+            let honeyEl = node.querySelector('.ic-honey') || node.querySelector('.honey-cnt');
+            
+            let isNewFormat = false;
+            // 새로운 donation-card 구조 대응
+            if (!nickEl || !honeyEl) {
+                const textNodes = node.querySelectorAll('.donation-text .line');
+                if (textNodes.length >= 2) {
+                    nickEl = textNodes[0].querySelector('.emphasis');
+                    honeyEl = textNodes[1].querySelector('.emphasis');
+                    isNewFormat = true;
+                }
+            }
+
             if (!nickEl || !honeyEl) return;
 
             let nick = nickEl.innerText.trim();
-            // .donation-nick 포맷은 "누구누구님이" 처럼 '님이'가 붙어오므로 제거
-            nick = nick.replace(/님이$/, '');
+            if (!isNewFormat) {
+                // 기존 구조일 때만 '님이' 제거
+                nick = nick.replace(/님이$/, '');
+            }
 
             const honeyText = honeyEl.innerText.trim();
             
@@ -1023,10 +1037,16 @@
                         if (node.nodeType !== 1) return;
 
                         // 실제 동적으로 추가되는 것은 effect-area-merge 자체가 아니라 그 내부의 배너 요소들입니다.
-                        const honeyEl = (node.classList.contains('ic-honey') || node.classList.contains('honey-cnt')) ? node : (node.querySelector && (node.querySelector('.ic-honey') || node.querySelector('.honey-cnt')));
-                        if (honeyEl) {
+                        let targetEl = null;
+                        if (node.classList && (node.classList.contains('ic-honey') || node.classList.contains('honey-cnt') || node.classList.contains('donation-card'))) {
+                            targetEl = node;
+                        } else if (node.querySelector) {
+                            targetEl = node.querySelector('.ic-honey') || node.querySelector('.honey-cnt') || node.querySelector('.donation-card');
+                        }
+
+                        if (targetEl) {
                             // 배너 정보를 담고 있는 최상위 노드 추출
-                            const rootNode = honeyEl.closest ? (honeyEl.closest('.normal-display-board') || honeyEl.closest('.effect-area-merge') || honeyEl.closest('.donation-card') || node) : node;
+                            const rootNode = targetEl.closest ? (targetEl.closest('.normal-display-board') || targetEl.closest('.effect-area-merge') || targetEl.closest('.donation-card') || node) : node;
                             handleEffectSupport(rootNode);
                         }
                     });
