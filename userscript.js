@@ -66,7 +66,8 @@
                     monthRank: { ...DB.monthRank, ...window.BOT_DB.monthRank },
                     missions: window.BOT_DB.missions || [],
                     keeps: window.BOT_DB.keeps || [],
-                    notices: window.BOT_DB.notices || []
+                    notices: window.BOT_DB.notices || [],
+                    customCmds: window.BOT_DB.customCmds || {}
                 };
             }
 
@@ -84,7 +85,8 @@
                     monthRank: { ...DB.monthRank, ...parsed.monthRank },
                     missions: parsed.missions || DB.missions,
                     keeps: parsed.keeps || DB.keeps,
-                    notices: parsed.notices || DB.notices || []
+                    notices: parsed.notices || DB.notices || [],
+                    customCmds: parsed.customCmds || DB.customCmds || {}
                 };
             }
 
