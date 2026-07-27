@@ -1,2 +1,6 @@
 
 cookies.json
+
+config.json
+bot_db_*.json
+bot_db.json
