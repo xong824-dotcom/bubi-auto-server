@@ -745,12 +745,14 @@ async function main() {
             
             // 메인 백그라운드 탭 생성 (자동 갱신용)
             global.bgPage = await global.browser.newPage();
+            await global.bgPage.setViewport({ width: 1280, height: 720 });
             await global.bgPage.setCookie(...cookies);
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
             log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
         } else {
             log(`⚠️ [쿠키 누락] cookies.json 파일이 없습니다! (비로그인 상태로 진입합니다)`);
             global.bgPage = await global.browser.newPage();
+            await global.bgPage.setViewport({ width: 1280, height: 720 });
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
             log(`✅ 백그라운드 무한 연장 엔진 가동! (현재 비로그인 상태. CCTV에서 로그인 시 자동 백업됨)`);
         }
