@@ -745,27 +745,29 @@ async function main() {
             await global.bgPage.setCookie(...cookies);
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
             log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
-            
-            // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
-            setInterval(async () => {
-                try { 
-                    if (global.bgPage && !global.bgPage.isClosed()) {
-                        await global.bgPage.reload({ waitUntil: 'networkidle2', timeout: 30000 });
-                        // 🚀 최신 쿠키 백업 (로그아웃 된 상태면 덮어쓰지 않음)
-                        const currentCookies = await global.bgPage.cookies();
-                        if (currentCookies.find(c => c.name === 'auth_token')) {
-                            fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
-                            log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
-                        } else {
-                            log('⚠️ [토큰 백업 실패] 백그라운드 탭 로그아웃 감지! 볼륨 덮어쓰기를 방지합니다.');
-                        }
-                    }
-                } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
-            }, 10 * 60 * 1000);
-            
         } else {
             log(`⚠️ [쿠키 누락] cookies.json 파일이 없습니다! (비로그인 상태로 진입합니다)`);
+            global.bgPage = await global.browser.newPage();
+            await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+            log(`✅ 백그라운드 무한 연장 엔진 가동! (현재 비로그인 상태. CCTV에서 로그인 시 자동 백업됨)`);
         }
+        
+        // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
+        setInterval(async () => {
+            try { 
+                if (global.bgPage && !global.bgPage.isClosed()) {
+                    await global.bgPage.reload({ waitUntil: 'networkidle2', timeout: 30000 });
+                    // 🚀 최신 쿠키 백업 (로그아웃 된 상태면 덮어쓰지 않음)
+                    const currentCookies = await global.bgPage.cookies();
+                    if (currentCookies.find(c => c.name === 'auth_token')) {
+                        fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
+                        log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
+                    } else {
+                        log('⚠️ [토큰 백업 실패] 백그라운드 탭 로그아웃 감지! 볼륨 덮어쓰기를 방지합니다.');
+                    }
+                }
+            } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
+        }, 10 * 60 * 1000);
     } catch(e) { log(`❌ [쿠키 에러] ${e.message}`); }
 
     const activeRooms = new Map();
