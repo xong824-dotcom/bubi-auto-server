@@ -333,6 +333,11 @@
                 <h2 style="margin-bottom:1.5rem;">⚙️ 봇 기본 동작 설정</h2>
                 
                 <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="set_botEnabled" ${botDB.settings.botEnabled !== false ? 'checked' : ''} style="width:20px; height:20px;">
+                    <label class="form-label" style="margin:0; font-size:1.1rem; color: #ffeb3b;">🤖 봇 전원 스위치 (이 스위치를 끄면 봇이 방송방에서 모든 활동을 일시정지합니다)</label>
+                </div>
+                
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="set_enableCommands" ${botDB.settings.enableCommands !== false ? 'checked' : ''} style="width:20px; height:20px;">
                     <label class="form-label" style="margin:0; font-size:1.1rem;">봇 명령어 켜기 (끄면 봇이 대답 안함)</label>
                 </div>
@@ -434,9 +439,15 @@
     }
 
     function saveSettings() {
+        botDB.settings.botEnabled = document.getElementById('set_botEnabled').checked;
         botDB.settings.enableCommands = document.getElementById('set_enableCommands').checked;
         botDB.settings.autoWelcome = document.getElementById('set_autoWelcome').checked;
         saveDBToServer();
+        fetch(`/api/targets/${targetId}/settings`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ botEnabled: botDB.settings.botEnabled })
+        }).catch(()=>{});
     }
 
     function saveProfile() {

@@ -955,6 +955,7 @@
 
         if (chatWrap && !chatObserver) {
             chatObserver = new MutationObserver((mutations) => {
+                if (DB.settings && DB.settings.botEnabled === false) return;
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
@@ -1055,6 +1056,7 @@
     function startEffectObserver() {
         if (!effectObserver) {
             effectObserver = new MutationObserver((mutations) => {
+                if (DB.settings && DB.settings.botEnabled === false) return;
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
