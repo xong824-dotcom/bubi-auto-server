@@ -409,11 +409,12 @@ function startDashboard() {
     });
 
     app.post('/api/live/click', async (req, res) => {
-        if (global.livePage && !global.livePage.isClosed()) {
+        const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
+        if (page && !page.isClosed()) {
             const { x, y, width, height } = req.body;
             const targetX = x * (1280 / width);
             const targetY = y * (720 / height);
-            try { await global.livePage.mouse.click(targetX, targetY); } catch(e){}
+            try { await page.mouse.click(targetX, targetY); } catch(e){}
             res.json({ success: true });
         } else {
             res.status(404).json({ success: false });
@@ -421,11 +422,12 @@ function startDashboard() {
     });
 
     app.post('/api/live/type', async (req, res) => {
-        if (global.livePage && !global.livePage.isClosed()) {
+        const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
+        if (page && !page.isClosed()) {
             const { text, action } = req.body;
             try {
-                if (action) await global.livePage.keyboard.press(action);
-                else if (text) await global.livePage.keyboard.type(text);
+                if (action) await page.keyboard.press(action);
+                else if (text) await page.keyboard.type(text);
             } catch(e){}
             res.json({ success: true });
         } else {
@@ -434,9 +436,10 @@ function startDashboard() {
     });
 
     app.get('/live-image', async (req, res) => {
-        if (global.livePage && !global.livePage.isClosed()) {
+        const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
+        if (page && !page.isClosed()) {
             try {
-                const buffer = await global.livePage.screenshot({ type: 'jpeg', quality: 60 });
+                const buffer = await page.screenshot({ type: 'jpeg', quality: 60 });
                 res.set('Content-Type', 'image/jpeg');
                 res.send(buffer);
             } catch(e) {
