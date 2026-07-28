@@ -123,7 +123,9 @@
     // 대시보드에서 봇 DB 전체를 덮어쓸 때 호출
     window.updateBotDB = function(newDB) {
         if (!newDB) return;
-        DB = newDB;
+        DB.settings = { ...DB.settings, ...(newDB.settings || {}) };
+        DB.customCmds = newDB.customCmds || {};
+        DB.notices = newDB.notices || [];
         console.log('[부비라이브 헬퍼] 대시보드 실시간 DB 통째로 동기화 완료');
         saveDB();
     };
@@ -347,6 +349,7 @@
         attendanceInProgress.add(nick);
 
         try {
+            if (!DB.attendance) DB.attendance = {};
             if (!DB.attendance[month]) DB.attendance[month] = {};
             
             // 고유 ID가 다를 경우를 대비해 닉네임으로 기존 기록 찾기
@@ -378,11 +381,13 @@
             saveDB();
 
             let allTimeTotal = 0;
-            Object.values(DB.attendance).forEach(monthData => {
-                if (monthData && monthData[userId]) {
-                    allTimeTotal += (monthData[userId].total || 0);
-                }
-            });
+            if (DB.attendance) {
+                Object.values(DB.attendance).forEach(monthData => {
+                    if (monthData && monthData[userId]) {
+                        allTimeTotal += (monthData[userId].total || 0);
+                    }
+                });
+            }
 
             if (!isSilent) {
                 if (isVIP && DB.settings.welcomeMsgVIP) {
