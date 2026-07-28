@@ -35,8 +35,8 @@
             enableCommands: true,
             welcomeMsgNormal: '어서오세요! 반가워요❤️',
             welcomeMsgVIP: '다이아님 어서오세요! 💎✨',
-            welcomeMsgHot: '열혈님 어서오세요! 🔥',
-            minGift: 300, // VIP 기준 후원 개수 기본값
+            welcomeMsgHot: '🔥 열혈팬 어서오고! 💖',
+            minGift: 5000, // VIP 컷 기본값 상향
             cooldownSeconds: 3,
             bjProfileText: '' // 텍스트 기반 프로필(공지/소개) 저장용
         },
@@ -95,6 +95,8 @@
                 DB.settings = { ...DB.settings, ...window.BOT_SETTINGS };
                 console.log('[부비라이브 헬퍼] 대시보드 강제 설정이 적용되었습니다:', window.BOT_SETTINGS);
             }
+            
+            upgradeLegacySettings();
         } catch (e) {
             console.error('[부비라이브 헬퍼] 로컬 데이터 로드 오류:', e);
         }
@@ -129,6 +131,13 @@
         console.log('[부비라이브 헬퍼] 대시보드 실시간 DB 통째로 동기화 완료');
         saveDB();
     };
+
+    // 기존 300개 세팅된 값을 5000개로 강제 업그레이드
+    function upgradeLegacySettings() {
+        if (DB.settings.minGift === 300) {
+            DB.settings.minGift = 5000;
+        }
+    }
 
     /* ================================================================
        2. 날짜 유틸리티 (한국 표준시 KST 기준)
@@ -464,7 +473,7 @@
 
             logStatus(`[후원 감지] ${nick} - ${summaryText}`);
 
-            const minGift = DB.settings.minGift || 300;
+            const minGift = DB.settings.minGift || 5000;
             if (amount >= minGift) {
                 queueMessage(`💎💎 [VIP후원] ${nick}님 ${amount}개 후원 너무 감사합니다!! 압도적 감사!! 💎💎`);
             } else {
@@ -1325,7 +1334,7 @@
             DB.settings.welcomeMsgNormal = panel.querySelector('#bh-msg-normal').value;
             DB.settings.welcomeMsgHot = panel.querySelector('#bh-msg-hot').value;
             DB.settings.welcomeMsgVIP = panel.querySelector('#bh-msg-vip').value;
-            DB.settings.minGift = parseInt(panel.querySelector('#bh-min-gift').value) || 300;
+            DB.settings.minGift = parseInt(panel.querySelector('#bh-min-gift').value) || 5000;
 
             saveDB();
             logStatus('[설정] 모든 설정이 성공적으로 저장 및 적용되었습니다.');
