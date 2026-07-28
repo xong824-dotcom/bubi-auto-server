@@ -347,6 +347,11 @@
                     <label class="form-label" style="margin:0; font-size:1.1rem;">자동 인사 켜기 (새로운 시청자 입장 시 인사)</label>
                 </div>
                 
+                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="set_autoParrot" ${botDB.settings.autoParrot === true ? 'checked' : ''} style="width:20px; height:20px;">
+                    <label class="form-label" style="margin:0; font-size:1.1rem;">앵무새 모드 켜기 (시청자가 짧은 리액션 치면 한 번씩 따라하기)</label>
+                </div>
+                
                 <button class="btn btn-primary" onclick="saveSettings()">설정 저장하기 (실시간 반영)</button>
                 
                 <hr style="border-color:var(--border-color); margin: 3rem 0;">
@@ -444,6 +449,7 @@
         botDB.settings.botEnabled = document.getElementById('set_botEnabled').checked;
         botDB.settings.enableCommands = document.getElementById('set_enableCommands').checked;
         botDB.settings.autoWelcome = document.getElementById('set_autoWelcome').checked;
+        botDB.settings.autoParrot = document.getElementById('set_autoParrot').checked;
         saveDBToServer();
         fetch(`/api/targets/${targetId}/settings`, {
             method: 'PATCH',

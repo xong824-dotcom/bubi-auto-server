@@ -1009,6 +1009,15 @@
                                         node.classList.contains('ic-manager')
                                     );
                                     handleCommand(msg, userId, nick, isHostOrManager);
+                                } else if (DB.settings && DB.settings.autoParrot) {
+                                    const now = Date.now();
+                                    // 1초 쿨타임으로 도배 방지
+                                    if (now - (window.lastParrotTime || 0) > 1000) {
+                                        if (msg === 'ㅅㅅㅅ') {
+                                            window.lastParrotTime = now;
+                                            queueMessage(msg);
+                                        }
+                                    }
                                 }
                             }
                         }
