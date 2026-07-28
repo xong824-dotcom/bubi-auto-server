@@ -202,7 +202,7 @@
     setInterval(() => {
         if (msgQueue.length === 0) return;
         const now = Date.now();
-        const cooldownMs = (DB.settings.cooldownSeconds || 3) * 1000;
+        const cooldownMs = (DB.settings.cooldownSeconds || 1) * 1000;
         if (now - lastSentTime >= cooldownMs) {
             const nextMsg = msgQueue.shift();
             const success = sendChatMessage(nextMsg);
@@ -521,7 +521,7 @@
 
             logStatus(`[대형 후원 감지] ${nick} - ${honeyText}`);
 
-            const minGift = DB.settings.minGift || 300;
+            const minGift = DB.settings.minGift || 5000;
             if (amount >= minGift) {
                 queueMessage(`💎💎 [VIP후원] ${nick}님 ${amount}개 후원 너무 감사합니다!! 압도적 감사!! 💎💎`);
             } else {
