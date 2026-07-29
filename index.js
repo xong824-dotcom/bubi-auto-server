@@ -188,7 +188,7 @@ function startDashboard() {
         // 🚀 편의 기능: 사용자가 방번호(vod_key)를 입력해도, 자동으로 평생 고유 ID(user_key)로 변환해주는 로직!
         if (type === 'vod_key') {
             try {
-                const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
+                const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=1000`;
                 const headers = { 'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10' };
                 try {
                     const cookiePath = path.join(__dirname, 'cookies.json');
@@ -495,7 +495,7 @@ function fetchLiveList() {
         };
 
         fetchCookies().then(() => {
-            const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=100`;
+            const url = `${CONFIG.apiBase}/vod/live-list?link_cd=ALL&offset=0&limit=1000`;
             https.get(url, { headers, timeout: 10000 }, res => {
                 let data = '';
                 res.on('data', chunk => data += chunk);
