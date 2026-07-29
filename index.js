@@ -174,9 +174,14 @@ function startDashboard() {
 
     // 현재 타겟 목록 조회
     app.get('/api/targets', (req, res) => {
+        const activeIds = new Set();
+        for (const [vod_key, p] of activeRooms.entries()) {
+            activeIds.add(String(vod_key));
+            if (p.user_key) activeIds.add(String(p.user_key));
+        }
         res.json({
             targets: targets,
-            activeRooms: Array.from(activeRooms.keys())
+            activeRooms: Array.from(activeIds)
         });
     });
 
@@ -938,12 +943,12 @@ async function main() {
             const lives = data.vod_list || [];
             
             const currentLiveVodKeys = new Set();
-            const targetVodKeys = targets.filter(t => t.type === 'vod_key').map(t => t.id);
-            const targetUserKeys = targets.filter(t => t.type === 'user_key').map(t => t.id);
+            const targetVodKeys = targets.filter(t => t.type === 'vod_key').map(t => String(t.id));
+            const targetUserKeys = targets.filter(t => t.type === 'user_key').map(t => String(t.id));
             
             lives.forEach(v => {
                 if (v.v_state === 1 && !v.v_end_date) {
-                    if (targetVodKeys.includes(v.vod_key) || targetUserKeys.includes(v.user_key)) {
+                    if (targetVodKeys.includes(String(v.vod_key)) || targetUserKeys.includes(String(v.user_key))) {
                         currentLiveVodKeys.add(v.vod_key);
                         if (!activeRooms.has(v.vod_key)) {
                             if (global.keptRooms) global.keptRooms.delete(v.vod_key);
