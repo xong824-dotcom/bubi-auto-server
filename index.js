@@ -918,7 +918,14 @@ async function main() {
             }
         });
 
-        try { await p.goto(`${CONFIG.siteBase}/lives/play/${vod_key}`, { waitUntil: 'domcontentloaded', timeout: 30000 }); } catch(e) { }
+        try { 
+            await p.goto(`${CONFIG.siteBase}/lives/play/${vod_key}`, { waitUntil: 'domcontentloaded', timeout: 30000 }); 
+        } catch(e) { 
+            log(`❌ [입장 실패] ${title} 방 접속 타임아웃 (30초 후 재시도)`);
+            try { await p.close(); } catch(err){}
+            return; // 에러 시 activeRooms에 추가하지 않음 -> 다음 주기에 다시 시도
+        }
+        
         p.user_key = user_key;
         p.vod_key = vod_key;
         activeRooms.set(vod_key, p);
