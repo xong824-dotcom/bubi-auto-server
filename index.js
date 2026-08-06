@@ -1,4 +1,4 @@
-﻿
+
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
@@ -338,68 +338,74 @@ function startDashboard() {
     app.use(express.json());
 
     app.get('/live', (req, res) => {
-        res.send(`<!DOCTYPE html>
-<html>
-<head>
-    <title>실시간 CCTV</title>
-    <meta charset="utf-8">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0d0d0d; color: white; font-family: sans-serif; padding: 16px; }
-        h1 { text-align: center; color: #ff4466; font-size: 20px; margin-bottom: 16px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-        .card { background: #1a1a1a; border: 2px solid #333; border-radius: 10px; overflow: hidden; }
-        .card-title { background: #222; padding: 10px 14px; font-size: 13px; font-weight: bold; color: #ffcc00; display:flex; align-items:center; gap:8px; }
-        .dot { width:10px; height:10px; background:#ff4444; border-radius:50%; animation:blink 1s infinite; }
-        .card img { width:100%; display:block; }
-        .card .lbl { padding:5px 12px; font-size:11px; color:#666; background:#111; }
-        .bg-card { border-color: #224488; }
-        .bg-card .card-title { color:#88ccff; }
-        .bg-card .dot { background:#4488ff !important; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .empty { text-align:center; color:#555; padding:60px; }
-        .ts { text-align:center; color:#444; font-size:11px; margin-bottom:10px; }
-    </style>
-</head>
-<body>
-    <h1>🔴 실시간 CCTV — 방별 화면</h1>
-    <div class="ts" id="ts"></div>
-    <div class="grid" id="grid"><div class="empty">⏳ 로딩 중...</div></div>
-    <script>
-        function refresh() {
-            fetch('/api/live/rooms').then(r=>r.json()).then(data=>{
-                const grid = document.getElementById('grid');
-                const rooms = data.rooms||[];
-                if (!rooms.length) { grid.innerHTML='<div class="empty">🚫 현재 봇이 입장한 방이 없습니다.</div>'; return; }
-                grid.innerHTML = rooms.map(r=>\`
-                    <div class="card \${r.type==='bg'?'bg-card':''}">
-                        <div class="card-title"><span class="dot"></span>\${r.name}</div>
-                        <img src="/live-image?room=\${r.key}&t=\${Date.now()}" onerror="this.style.display='none'">
-                        <div class="lbl">key: \${r.key}</div>
-                    </div>\`).join('');
-                document.getElementById('ts').textContent='갱신: '+new Date().toLocaleTimeString('ko-KR');
-            }).catch(()=>{});
-        }
-        refresh();
-        setInterval(refresh, 3000);
-    </script>
-</body>
-</html>`);
-    });
+        res.send(`
+            <html>
+                <head>
+                    <title>부비라이브 봇 실시간 제어</title>
+                    <meta charset="utf-8">
+                    <style>
+                        body { background: #111; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 20px; }
+                        img { max-width: 100%; max-height: 70vh; border: 3px solid #ff4444; border-radius: 10px; cursor: crosshair; }
+                        .controls { margin-bottom: 15px; padding: 15px; background: #222; border-radius: 10px; display: inline-block; }
+                        button, input { padding: 10px 15px; font-size: 16px; margin: 5px; border-radius: 5px; border: none; }
+                        button { cursor: pointer; background: #44aaff; color: white; font-weight: bold; }
+                        button:hover { background: #3388cc; }
+                        .manual-btn { background: #ff4444; }
+                    </style>
+                    <script>
+                        setInterval(() => {
+                            const img = document.getElementById('live-img');
+                            img.src = '/live-image?t=' + new Date().getTime();
+                        }, 1000);
 
-    app.get('/api/live/rooms', (req, res) => {
-        const rooms = [];
-        if (global.activeRooms) {
-            for (const [vod_key, p] of global.activeRooms.entries()) {
-                if (p && !p.isClosed()) {
-                    rooms.push({ key: String(vod_key), name: p.bjName || p.user_key || String(vod_key), type: 'room' });
-                }
-            }
-        }
-        if (global.bgPage && !global.bgPage.isClosed()) {
-            rooms.push({ key: 'bg', name: '🌐 메인(로그인 화면)', type: 'bg' });
-        }
-        res.json({ rooms });
+                        async function toggleManual() {
+                            await fetch('/api/live/manual', { method: 'POST' });
+                            alert('수동 조작 모드가 켜졌습니다! 봇이 타이핑을 멈추고 대기합니다.');
+                        }
+                        async function sendClick(e) {
+                            const img = e.target;
+                            const rect = img.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            await fetch('/api/live/click', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ x: x, y: y, width: img.clientWidth, height: img.clientHeight })
+                            });
+                        }
+                        async function sendText() {
+                            const text = document.getElementById('kb-input').value;
+                            if (!text) return;
+                            await fetch('/api/live/type', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ text: text })
+                            });
+                            document.getElementById('kb-input').value = '';
+                        }
+                        async function sendKey(action) {
+                            await fetch('/api/live/type', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: action })
+                            });
+                        }
+                    </script>
+                </head>
+                <body>
+                    <h1>🔴 실시간 CCTV 및 원격 제어</h1>
+                    <div class="controls">
+                        <button class="manual-btn" onclick="toggleManual()">🛑 수동 조작 모드 켜기 (봇 멈춤)</button><br><br>
+                        <input type="text" id="kb-input" placeholder="봇에게 보낼 글자 입력..." />
+                        <button onclick="sendText()">입력 전송</button>
+                        <button onclick="sendKey('Backspace')">지우기(Back)</button>
+                        <button onclick="sendKey('Enter')">엔터(Enter)</button>
+                    </div>
+                    <p style="color: yellow;">💡 아래 화면을 클릭하면 봇의 마우스가 똑같이 클릭합니다!</p>
+                    <img id="live-img" src="/live-image" onclick="sendClick(event)" />
+                </body>
+            </html>
+        `);
     });
 
     app.post('/api/live/manual', (req, res) => {
@@ -411,9 +417,13 @@ function startDashboard() {
         const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
         if (page && !page.isClosed()) {
             const { x, y, width, height } = req.body;
-            try { await page.mouse.click(x*(1280/width), y*(720/height)); } catch(e){}
+            const targetX = x * (1280 / width);
+            const targetY = y * (720 / height);
+            try { await page.mouse.click(targetX, targetY); } catch(e){}
             res.json({ success: true });
-        } else res.status(404).json({ success: false });
+        } else {
+            res.status(404).json({ success: false });
+        }
     });
 
     app.post('/api/live/type', async (req, res) => {
@@ -425,27 +435,24 @@ function startDashboard() {
                 else if (text) await page.keyboard.type(text);
             } catch(e){}
             res.json({ success: true });
-        } else res.status(404).json({ success: false });
+        } else {
+            res.status(404).json({ success: false });
+        }
     });
 
     app.get('/live-image', async (req, res) => {
-        const roomKey = req.query.room;
-        let page = null;
-        if (roomKey === 'bg') {
-            page = global.bgPage;
-        } else if (roomKey && global.activeRooms) {
-            page = global.activeRooms.get(roomKey) || global.activeRooms.get(Number(roomKey));
-        }
-        if (!page || page.isClosed()) {
-            page = (global.livePage && !global.livePage.isClosed()) ? global.livePage : global.bgPage;
-        }
+        const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
         if (page && !page.isClosed()) {
             try {
-                const buf = await page.screenshot({ type: 'jpeg', quality: 55 });
+                const buffer = await page.screenshot({ type: 'jpeg', quality: 60 });
                 res.set('Content-Type', 'image/jpeg');
-                res.send(buf);
-            } catch(e) { res.status(500).send('err'); }
-        } else res.status(404).send('not running');
+                res.send(buffer);
+            } catch(e) {
+                res.status(500).send('Screenshot error');
+            }
+        } else {
+            res.status(404).send('Not running');
+        }
     });
 
     app.listen(CONFIG.port, () => {
@@ -512,60 +519,187 @@ function fetchLiveList() {
 // 강력한 로그인 로직
 // ============================================================
 async function doLogin(page) {
-    log('== 자동 로그인 시작 ==');
+    global.livePage = page;
+    log('🔐 로그인 시도 중...');
+
+    // 브라우저 내부 동작 모니터링
+    page.on('console', msg => log(`[브라우저 콘솔] ${msg.type().toUpperCase()}: ${msg.text()}`));
+    page.on('dialog', async dialog => {
+        log(`[🚨 브라우저 알림창 🚨] ${dialog.message()}`);
+        await dialog.accept();
+    });
+    page.on('request', request => {
+        const url = request.url();
+        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
+            log(`[네트워크 요청] ${request.method()} ${url}`);
+        }
+    });
+    page.on('response', async response => {
+        const url = response.url();
+        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
+            log(`[네트워크 응답] ${response.status()} ${url}`);
+            try {
+                const text = await response.text();
+                log(`[응답 내용] ${text.substring(0, 500)}`);
+            } catch(e) {}
+        }
+    });
+    const publicDir = path.join(__dirname, 'public');
+    
+    try { await page.goto(`${CONFIG.siteBase}`, { waitUntil: 'networkidle2', timeout: 20000 }); } catch (e) {}
+    await delay(3000);
+    log('🔍 로그인 옵션 탐색 중...');
+
+    // 1. 메인 화면 상태 캡처
+    try { await page.screenshot({ path: path.join(publicDir, 'debug1.png') }); } catch(e){}
+
+    // 확실한 네이티브 마우스 클릭으로 로그인 버튼(헤더) 누르기
     try {
-        log('홈으로 이동...');
-        await page.goto(CONFIG.siteBase, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(()=>{});
-        await delay(4000);
-
-        // 1. 팝업/오버레이 제거 후 로그인 버튼 클릭
-        await page.evaluate(() => {
-            // 팝업 레이어 제거
-            document.querySelectorAll('[class*="modal"],[class*="overlay"],[class*="popup"],[class*="layer"]').forEach(el => {
-                if (el.style) el.style.display = 'none';
-            });
-            const btn = Array.from(document.querySelectorAll('*')).find(e => e.innerText && e.innerText.trim() === '로그인');
-            if (btn) btn.click();
-        });
-        await delay(2000);
-
-        // 2. 아이디로 시작하기
-        await page.evaluate(() => {
-            const btn = Array.from(document.querySelectorAll('*')).find(e => e.innerText && e.innerText.includes('아이디로 시작하기'));
-            if (btn) btn.click();
-        });
-        await delay(2000);
-
-        // 3. 입력창에 JS로 직접 focus + keyboard 이벤트로 타이핑
-        const typed = await page.evaluate((id, pw) => {
-            const idEl = document.querySelector('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
-            const pwEl = document.querySelector('input[type="password"]');
-            if (!idEl || !pwEl) return false;
-            idEl.focus(); idEl.value = id;
-            ['input','change'].forEach(ev => idEl.dispatchEvent(new Event(ev, {bubbles:true})));
-            pwEl.focus(); pwEl.value = pw;
-            ['input','change'].forEach(ev => pwEl.dispatchEvent(new Event(ev, {bubbles:true})));
-            return true;
-        }, BUBEE_ID, BUBEE_PW);
-        
-        log(typed ? '아이디/비번 입력 완료' : '입력창 못 찾음!');
-        await delay(1000);
-
-        // 4. 엔터로 제출
-        await page.keyboard.press('Enter');
-        await delay(5000);
-
-        const success = await page.evaluate(() => {
-            return !Array.from(document.querySelectorAll('*')).some(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
-        });
-
-        try { await page.screenshot({ path: require('path').join(__dirname, 'public', 'debug_login_result.png') }); } catch(e){}
-        log(success ? '== 자동 로그인 성공! ==' : '== 자동 로그인 실패. CCTV에서 debug_login_result.png 확인 ==');
-        return success;
+        await page.click('.btn-login');
+        log('👉 메인 로그인 버튼 클릭 완료');
     } catch(e) {
-        log('doLogin 오류: ' + e.message);
-        return false;
+        log('⚠️ btn-login 클래스를 찾을 수 없습니다. 자바스크립트 클릭 시도');
+        await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button, a, div, li, span'));
+            const loginBtn = btns.find(e => e.innerText && e.innerText.includes('로그인') && !e.innerText.includes('카카오') && e.offsetHeight > 0);
+            if (loginBtn) loginBtn.click();
+        });
     }
+
+    await delay(2000);
+    
+    // 🚀 부비라이브 신규 로그인 UI 대응: "아이디로 시작하기" 버튼 클릭
+    log('👉 로그인 수단 선택: "아이디로 시작하기" 찾는 중...');
+    const clickedIdStart = await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('button, a, div, li, span')).reverse();
+        const idStartBtn = els.find(e => {
+            if (!e.innerText) return false;
+            const txt = e.innerText.replace(/\n/g, '').replace(/\s+/g, ' ');
+            // 부모 모달 전체가 선택되는 것을 방지 (텍스트 길이 제한)
+            return txt.includes('아이디로 시작하기') && !txt.includes('카카오') && e.offsetHeight > 0 && txt.length < 30;
+        });
+        if (idStartBtn) {
+            const clickable = idStartBtn.closest('button') || idStartBtn.closest('a') || idStartBtn.closest('li') || idStartBtn;
+            clickable.click();
+            return true;
+        }
+        return false;
+    });
+
+    if (clickedIdStart) {
+        log('✅ "아이디로 시작하기" 클릭 완료');
+        await delay(1500); // 폼으로 전환될 때까지 충분히 대기
+    } else {
+        log('⚠️ "아이디로 시작하기" 버튼을 찾을 수 없습니다. 이미 폼이 열려있다고 가정합니다.');
+    }
+    
+    // 2. 모달 전환 후 상태 캡처
+    try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
+    
+    let loginSuccess = false;
+    for (let i = 0; i < 10; i++) {
+        if (global.manualMode) {
+            log('🛑 수동 조작 모드 활성화됨. 봇이 입력을 멈추고 사용자의 입력을 기다립니다...');
+            const isLoginModalOpen = await page.evaluate(() => {
+                const input = document.querySelector('input[type="password"]');
+                return input && input.offsetWidth > 0;
+            });
+
+            if (!isLoginModalOpen) {
+                log('✅ 수동 로그인 성공 감지!');
+                loginSuccess = true;
+                break;
+            }
+            await delay(2000);
+            i--; // 수동 모드에서는 반복 횟수를 소진하지 않음 (무한 대기)
+            continue;
+        }
+
+        log(`👉 아이디/비밀번호 네이티브 입력 시도 (${i + 1}/10)`);
+        
+        let idTyped = false;
+        const idInputs = await page.$$('input[name="id"], input[placeholder*="아이디"], input[type="email"]');
+        for (const el of idInputs) {
+            if (await el.evaluate(e => e.offsetWidth > 0)) {
+                await el.click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await delay(100);
+                await el.type(BUBEE_ID, { delay: 100 });
+                idTyped = true;
+                break;
+            }
+        }
+        
+        let pwTyped = false;
+        const pwInputs = await page.$$('input[type="password"]');
+        for (const el of pwInputs) {
+            if (await el.evaluate(e => e.offsetWidth > 0)) {
+                await el.click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await delay(100);
+                await el.type(BUBEE_PW, { delay: 100 });
+                pwTyped = true;
+                break;
+            }
+        }
+        
+        if (idTyped && pwTyped) {
+            await delay(500);
+            
+            // 🚀 모달 창 안의 최종 "로그인" 버튼 찾아서 Puppeteer 네이티브 클릭
+            const btns = await page.$$('button, div, span');
+            for (const btn of btns) {
+                const isTarget = await btn.evaluate(b => {
+                    if (!b.innerText) return false;
+                    const txt = b.innerText.trim();
+                    return txt === '로그인' && b.offsetHeight > 0 && b.closest('header') === null;
+                });
+                
+                if (isTarget) {
+                    await btn.evaluate(b => {
+                        const clickable = b.closest('button') || b;
+                        clickable.removeAttribute('disabled');
+                        clickable.style.pointerEvents = 'auto';
+                    });
+                    
+                    try {
+                        await btn.click();
+                        log('✅ 모달 로그인 버튼 네이티브 클릭 완료');
+                    } catch(e) {
+                        log('⚠️ 네이티브 클릭 실패, JS 클릭 시도');
+                        await btn.evaluate(b => (b.closest('button')||b).click());
+                    }
+                    break;
+                }
+            }
+            
+            await delay(500);
+            await page.keyboard.press('Enter');
+            await delay(3000); // 로그인 처리 대기
+            
+            const isLoginModalOpen = await page.evaluate(() => {
+                const input = document.querySelector('input[type="password"]');
+                return input && input.offsetWidth > 0;
+            });
+
+            if (!isLoginModalOpen) {
+                loginSuccess = true;
+                break;
+            }
+        }
+        await delay(1000);
+    }
+    
+    // 4. 로그인 시도 후 최종 상태 캡처
+    try { await page.screenshot({ path: path.join(publicDir, 'debug4.png') }); } catch(e){}
+    
+    if (!loginSuccess) {
+        log('❌ [치명적 오류] 아이디/비밀번호 입력 폼을 찾지 못했거나 로그인이 거부되었습니다! (캡차 등)');
+    } else {
+        log('✅ 아이디/비밀번호 입력 및 로그인 최종 통과!');
+    }
+
+    return loginSuccess;
 }
 
 // ============================================================
@@ -626,36 +760,6 @@ async function main() {
             await global.bgPage.setViewport({ width: 1280, height: 720 });
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
             log(`✅ 백그라운드 무한 연장 엔진 가동! (현재 비로그인 상태. CCTV에서 로그인 시 자동 백업됨)`);
-        }
-        
-        // 🚀 자동 로그인 로직 연결
-        log(`🔍 현재 로그인 상태를 검증합니다... (페이지 로딩 대기 5초)`);
-        await new Promise(r => setTimeout(r, 5000)); // SPA 렌더링 대기
-        
-        const isLoggedIn = await global.bgPage.evaluate(() => {
-            const html = document.body.innerHTML;
-            // 빈 껍데기 화면이거나 '로그인' 이라는 단어가 단독으로 존재하면 비로그인 상태로 간주
-            if (html.length < 500) return false; 
-            
-            const btns = Array.from(document.querySelectorAll('button, a, span'));
-            const hasLoginBtn = btns.some(e => e.innerText && e.innerText.trim() === '로그인');
-            return !hasLoginBtn;
-        });
-
-        if (!isLoggedIn) {
-            log(`⚠️ 쿠키가 만료되었거나 로그인이 풀려있습니다. 자동 로그인을 시도합니다!`);
-            const success = await doLogin(global.bgPage);
-            if (success) {
-                const currentCookies = await global.bgPage.cookies();
-                if (currentCookies.find(c => c.name === 'auth_token')) {
-                    fs.writeFileSync(cookiePath, JSON.stringify(currentCookies, null, 2));
-                    log('✅ 자동 로그인 성공! 새로운 쿠키가 저장되었습니다!');
-                }
-            } else {
-                log('❌ 자동 로그인 실패! 수동으로 로그인해주세요.');
-            }
-        } else {
-            log('✅ 정상적으로 로그인 되어있습니다.');
         }
         
         // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
