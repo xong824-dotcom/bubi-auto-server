@@ -763,10 +763,17 @@ async function main() {
         }
         
         // 🚀 자동 로그인 로직 연결
-        log(`🔍 현재 로그인 상태를 검증합니다...`);
+        log(`🔍 현재 로그인 상태를 검증합니다... (페이지 로딩 대기 5초)`);
+        await new Promise(r => setTimeout(r, 5000)); // SPA 렌더링 대기
+        
         const isLoggedIn = await global.bgPage.evaluate(() => {
             const html = document.body.innerHTML;
-            return !html.includes('로그인 하기') && !html.includes('로그인이 필요합니다') && (document.querySelector('input[type="password"]') === null);
+            // 빈 껍데기 화면이거나 '로그인' 이라는 단어가 단독으로 존재하면 비로그인 상태로 간주
+            if (html.length < 500) return false; 
+            
+            const btns = Array.from(document.querySelectorAll('button, a, span'));
+            const hasLoginBtn = btns.some(e => e.innerText && e.innerText.trim() === '로그인');
+            return !hasLoginBtn;
         });
 
         if (!isLoggedIn) {
