@@ -453,8 +453,6 @@ function startDashboard() {
         log(`🔴 실시간 CCTV 원격제어: http://localhost:${CONFIG.port}/live`);
     });
 }
-    });
-}
 
 // ============================================================
 // API 통신 (경량 폴링)
@@ -575,7 +573,6 @@ async function doLogin(page) {
         log('❌ doLogin 예외: ' + e.message);
         return false;
     }
-}
 }
 
 // ============================================================
