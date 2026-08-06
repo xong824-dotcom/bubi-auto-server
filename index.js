@@ -512,65 +512,53 @@ function fetchLiveList() {
 // 강력한 로그인 로직
 // ============================================================
 async function doLogin(page) {
-    log('🔐 자동 로그인 시작...');
-    const publicDir = path.join(__dirname, 'public');
-
+    log('== 자동 로그인 시작 ==');
     try {
-        log('🌐 부비라이브 홈으로 이동...');
+        log('홈으로 이동...');
         await page.goto(CONFIG.siteBase, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(()=>{});
         await delay(4000);
 
-        log('👉 헤더 로그인 버튼 클릭...');
         await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('*'));
-            const btn = all.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+            const btn = Array.from(document.querySelectorAll('*')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
             if (btn) btn.click();
         });
         await delay(2000);
 
-        log('👉 "아이디로 시작하기" 클릭...');
         await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('*'));
-            const btn = all.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.includes('아이디로 시작하기'));
+            const btn = Array.from(document.querySelectorAll('*')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.includes('아이디로 시작하기'));
             if (btn) btn.click();
         });
         await delay(2000);
 
-        log('✏️ 아이디/비밀번호 입력 중...');
-        await page.evaluate((id, pw) => {
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            const idInput = document.querySelector('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
-            if (idInput) {
-                setter.call(idInput, id);
-                idInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            const pwInput = document.querySelector('input[type="password"]');
-            if (pwInput) {
-                setter.call(pwInput, pw);
-                pwInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        }, BUBEE_ID, BUBEE_PW);
-        await delay(1000);
+        const idSel = await page.$('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
+        if (idSel) {
+            await page.evaluate(el => { el.value = ''; el.focus(); }, idSel);
+            await idSel.type(BUBEE_ID, { delay: 80 });
+        }
 
-        log('🚀 로그인 제출...');
+        const pwSel = await page.$('input[type="password"]');
+        if (pwSel) {
+            await page.evaluate(el => { el.value = ''; el.focus(); }, pwSel);
+            await pwSel.type(BUBEE_PW, { delay: 80 });
+        }
+
+        await delay(800);
         await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button'));
-            const submitBtn = btns.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
-            if (submitBtn) { submitBtn.removeAttribute('disabled'); submitBtn.click(); }
+            const btn = Array.from(document.querySelectorAll('button')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+            if (btn) { btn.removeAttribute('disabled'); btn.click(); }
         });
         await page.keyboard.press('Enter');
         await delay(4000);
 
         const success = await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('*'));
-            return !all.some(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+            return !Array.from(document.querySelectorAll('*')).some(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
         });
 
         try { await page.screenshot({ path: require('path').join(__dirname, 'public', 'debug_login_result.png') }); } catch(e){}
-        log(success ? '✅ 자동 로그인 성공!' : '❌ 자동 로그인 실패');
+        log(success ? '== 자동 로그인 성공! ==' : '== 자동 로그인 실패 ==');
         return success;
     } catch(e) {
-        log('❌ doLogin 예외: ' + e.message);
+        log('doLogin 오류: ' + e.message);
         return false;
     }
 }
