@@ -37,7 +37,7 @@
             welcomeMsgVIP: '다이아님 어서오세요! 💎✨',
             welcomeMsgHot: '🔥 열혈팬 어서오고! 💖',
             minGift: 5000, // VIP 컷 기본값 상향
-            cooldownSeconds: 3,
+            cooldownSeconds: 1, // 1초 딜레이로 변경
             bjProfileText: '' // 텍스트 기반 프로필(공지/소개) 저장용
         },
         attendance: {},
@@ -132,10 +132,13 @@
         saveDB();
     };
 
-    // 기존 300개 세팅된 값을 5000개로 강제 업그레이드
+    // 기존 300개 세팅된 값을 5000개로 강제 업그레이드 및 쿨타임 1초로 강제 변경
     function upgradeLegacySettings() {
         if (DB.settings.minGift === 300) {
             DB.settings.minGift = 5000;
+        }
+        if (DB.settings.cooldownSeconds === 3) {
+            DB.settings.cooldownSeconds = 1;
         }
     }
 
