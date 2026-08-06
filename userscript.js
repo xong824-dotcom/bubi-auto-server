@@ -976,7 +976,7 @@
     let chatObserver = null;
 
     function startChatObserver() {
-        const chatWrap = document.querySelector('.chat-area') || document.querySelector('.chat-wrap');
+        const chatWrap = document.querySelector('.chat-area, .chat-wrap, .chat-list, .chatting-area, .msg-list, .chat-container, .viewer-chat-list, .chat-box, .chat-content, [class*="chat-list"], [class*="msg-list"]');
 
         if (chatWrap && !chatObserver) {
             chatObserver = new MutationObserver((mutations) => {
@@ -985,10 +985,10 @@
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType !== 1) return;
 
-                        const msgItem = (node.classList?.contains('msg-item') || node.classList?.contains('viewer-content')) ? node : (node.querySelector?.('.msg-item') || node.querySelector?.('.viewer-content'));
+                        const msgItem = (node.classList?.contains('msg-item') || node.classList?.contains('viewer-content') || node.classList?.contains('chat-item')) ? node : (node.querySelector?.('.msg-item') || node.querySelector?.('.viewer-content') || node.querySelector?.('.chat-item'));
                         if (msgItem) {
-                            const nameEl = msgItem.querySelector('.user-name');
-                            const txtEl = msgItem.querySelector('.msg-txt');
+                            const nameEl = msgItem.querySelector('.user-name, .nick, .name, .chat-nick');
+                            const txtEl = msgItem.querySelector('.msg-txt, .text, .chat-text, .msg');
 
                             if (nameEl && txtEl) {
                                 const nick = nameEl.innerText.trim();
