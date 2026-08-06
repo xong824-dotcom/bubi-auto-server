@@ -637,12 +637,12 @@
                 return;
             }
             
-            // 가장 최근에 본 10명만 보여주기
-            const recent = todaysFortunes.slice(-10);
-            let msg = `🔮 [오늘의 운세 기록] (총 ${todaysFortunes.length}명)\n`;
-            recent.forEach((item, idx) => {
+            // 점수순(내림차순) 정렬 후 상위 10명 추출
+            const sorted = todaysFortunes.sort((a, b) => b.score - a.score).slice(0, 10);
+            let msg = `🔮 [오늘 운세 랭킹] (총 ${todaysFortunes.length}명 참여)\n`;
+            sorted.forEach((item, idx) => {
                 const name = item.nick || '익명';
-                msg += `${idx + 1}. ${name}님 (${item.score}점)\n`;
+                msg += `${idx + 1}위. ${name}님 (${item.score}점)\n`;
             });
             queueMessage(msg.trim());
         }
