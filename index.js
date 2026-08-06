@@ -1,4 +1,4 @@
-
+﻿
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
@@ -519,191 +519,68 @@ function fetchLiveList() {
 // 강력한 로그인 로직
 // ============================================================
 async function doLogin(page) {
-    global.livePage = page;
-    log('🔐 로그인 시도 중...');
-
-    // 브라우저 내부 동작 모니터링
-    page.on('console', msg => log(`[브라우저 콘솔] ${msg.type().toUpperCase()}: ${msg.text()}`));
-    page.on('dialog', async dialog => {
-        log(`[🚨 브라우저 알림창 🚨] ${dialog.message()}`);
-        await dialog.accept();
-    });
-    page.on('request', request => {
-        const url = request.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
-            log(`[네트워크 요청] ${request.method()} ${url}`);
-        }
-    });
-    page.on('response', async response => {
-        const url = response.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
-            log(`[네트워크 응답] ${response.status()} ${url}`);
-            try {
-                const text = await response.text();
-                log(`[응답 내용] ${text.substring(0, 500)}`);
-            } catch(e) {}
-        }
-    });
+    log('🔐 자동 로그인 시작...');
     const publicDir = path.join(__dirname, 'public');
-    
-    try { await page.goto(`${CONFIG.siteBase}`, { waitUntil: 'networkidle2', timeout: 20000 }); } catch (e) {}
-    await delay(3000);
-    log('🔍 로그인 옵션 탐색 중...');
 
-    // 1. 메인 화면 상태 캡처
-    try { await page.screenshot({ path: path.join(publicDir, 'debug1.png') }); } catch(e){}
-
-    // 확실한 자바스크립트 클릭으로 로그인 버튼(헤더) 누르기
     try {
+        log('🌐 부비라이브 홈으로 이동...');
+        await page.goto(CONFIG.siteBase, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(()=>{});
+        await delay(4000);
+
+        log('👉 헤더 로그인 버튼 클릭...');
         await page.evaluate(() => {
-            const btn = document.querySelector('.btn-login');
+            const all = Array.from(document.querySelectorAll('*'));
+            const btn = all.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
             if (btn) btn.click();
-            else {
-                const btns = Array.from(document.querySelectorAll('button, a, div, li, span'));
-                const loginBtn = btns.find(e => e.innerText && e.innerText.includes('로그인') && !e.innerText.includes('카카오') && e.offsetHeight > 0);
-                if (loginBtn) loginBtn.click();
-                else throw new Error("로그인 버튼을 찾을 수 없음");
-            }
         });
-        log('👉 메인 로그인 버튼 클릭 완료');
-    } catch(e) {
-        log('⚠️ 메인 로그인 버튼 클릭 실패: ' + e.message);
-    }
+        await delay(2000);
 
-    await delay(2000);
-    
-    // 🚀 부비라이브 신규 로그인 UI 대응: "아이디로 시작하기" 버튼 클릭
-    log('👉 로그인 수단 선택: "아이디로 시작하기" 찾는 중...');
-    const clickedIdStart = await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('button, a, div, li, span')).reverse();
-        const idStartBtn = els.find(e => {
-            if (!e.innerText) return false;
-            const txt = e.innerText.replace(/\n/g, '').replace(/\s+/g, ' ');
-            // 부모 모달 전체가 선택되는 것을 방지 (텍스트 길이 제한)
-            return txt.includes('아이디로 시작하기') && !txt.includes('카카오') && e.offsetHeight > 0 && txt.length < 30;
+        log('👉 "아이디로 시작하기" 클릭...');
+        await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('*'));
+            const btn = all.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.includes('아이디로 시작하기'));
+            if (btn) btn.click();
         });
-        if (idStartBtn) {
-            const clickable = idStartBtn.closest('button') || idStartBtn.closest('a') || idStartBtn.closest('li') || idStartBtn;
-            clickable.click();
-            return true;
-        }
-        return false;
-    });
+        await delay(2000);
 
-    if (clickedIdStart) {
-        log('✅ "아이디로 시작하기" 클릭 완료');
-        await delay(1500); // 폼으로 전환될 때까지 충분히 대기
-    } else {
-        log('⚠️ "아이디로 시작하기" 버튼을 찾을 수 없습니다. 이미 폼이 열려있다고 가정합니다.');
-    }
-    
-    // 2. 모달 전환 후 상태 캡처
-    try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
-    
-    let loginSuccess = false;
-    for (let i = 0; i < 10; i++) {
-        if (global.manualMode) {
-            log('🛑 수동 조작 모드 활성화됨. 봇이 입력을 멈추고 사용자의 입력을 기다립니다...');
-            const isLoginModalOpen = await page.evaluate(() => {
-                const input = document.querySelector('input[type="password"]');
-                return input && input.offsetWidth > 0;
-            });
-
-            if (!isLoginModalOpen) {
-                log('✅ 수동 로그인 성공 감지!');
-                loginSuccess = true;
-                break;
+        log('✏️ 아이디/비밀번호 입력 중...');
+        await page.evaluate((id, pw) => {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            const idInput = document.querySelector('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
+            if (idInput) {
+                setter.call(idInput, id);
+                idInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-            await delay(2000);
-            i--; // 수동 모드에서는 반복 횟수를 소진하지 않음 (무한 대기)
-            continue;
-        }
-
-        log(`👉 아이디/비밀번호 네이티브 입력 시도 (${i + 1}/10)`);
-        
-        let idTyped = false;
-        const idInputs = await page.$$('input[name="id"], input[placeholder*="아이디"], input[type="email"]');
-        for (const el of idInputs) {
-            if (await el.evaluate(e => e.offsetWidth > 0)) {
-                await el.click({ clickCount: 3 });
-                await page.keyboard.press('Backspace');
-                await delay(100);
-                await el.type(BUBEE_ID, { delay: 100 });
-                idTyped = true;
-                break;
+            const pwInput = document.querySelector('input[type="password"]');
+            if (pwInput) {
+                setter.call(pwInput, pw);
+                pwInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        }
-        
-        let pwTyped = false;
-        const pwInputs = await page.$$('input[type="password"]');
-        for (const el of pwInputs) {
-            if (await el.evaluate(e => e.offsetWidth > 0)) {
-                await el.click({ clickCount: 3 });
-                await page.keyboard.press('Backspace');
-                await delay(100);
-                await el.type(BUBEE_PW, { delay: 100 });
-                pwTyped = true;
-                break;
-            }
-        }
-        
-        if (idTyped && pwTyped) {
-            await delay(500);
-            
-            // 🚀 모달 창 안의 최종 "로그인" 버튼 찾아서 Puppeteer 네이티브 클릭
-            const btns = await page.$$('button, div, span');
-            for (const btn of btns) {
-                const isTarget = await btn.evaluate(b => {
-                    if (!b.innerText) return false;
-                    const txt = b.innerText.trim();
-                    return txt === '로그인' && b.offsetHeight > 0 && b.closest('header') === null;
-                });
-                
-                if (isTarget) {
-                    await btn.evaluate(b => {
-                        const clickable = b.closest('button') || b;
-                        clickable.removeAttribute('disabled');
-                        clickable.style.pointerEvents = 'auto';
-                    });
-                    
-                    try {
-                        await btn.click();
-                        log('✅ 모달 로그인 버튼 네이티브 클릭 완료');
-                    } catch(e) {
-                        log('⚠️ 네이티브 클릭 실패, JS 클릭 시도');
-                        await btn.evaluate(b => (b.closest('button')||b).click());
-                    }
-                    break;
-                }
-            }
-            
-            await delay(500);
-            await page.keyboard.press('Enter');
-            await delay(3000); // 로그인 처리 대기
-            
-            const isLoginModalOpen = await page.evaluate(() => {
-                const input = document.querySelector('input[type="password"]');
-                return input && input.offsetWidth > 0;
-            });
-
-            if (!isLoginModalOpen) {
-                loginSuccess = true;
-                break;
-            }
-        }
+        }, BUBEE_ID, BUBEE_PW);
         await delay(1000);
-    }
-    
-    // 4. 로그인 시도 후 최종 상태 캡처
-    try { await page.screenshot({ path: path.join(publicDir, 'debug4.png') }); } catch(e){}
-    
-    if (!loginSuccess) {
-        log('❌ [치명적 오류] 아이디/비밀번호 입력 폼을 찾지 못했거나 로그인이 거부되었습니다! (캡차 등)');
-    } else {
-        log('✅ 아이디/비밀번호 입력 및 로그인 최종 통과!');
-    }
 
-    return loginSuccess;
+        log('🚀 로그인 제출...');
+        await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button'));
+            const submitBtn = btns.find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+            if (submitBtn) { submitBtn.removeAttribute('disabled'); submitBtn.click(); }
+        });
+        await page.keyboard.press('Enter');
+        await delay(4000);
+
+        const success = await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('*'));
+            return !all.some(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+        });
+
+        try { await page.screenshot({ path: require('path').join(__dirname, 'public', 'debug_login_result.png') }); } catch(e){}
+        log(success ? '✅ 자동 로그인 성공!' : '❌ 자동 로그인 실패');
+        return success;
+    } catch(e) {
+        log('❌ doLogin 예외: ' + e.message);
+        return false;
+    }
+}
 }
 
 // ============================================================
