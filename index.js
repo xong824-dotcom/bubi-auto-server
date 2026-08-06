@@ -553,17 +553,21 @@ async function doLogin(page) {
     // 1. 메인 화면 상태 캡처
     try { await page.screenshot({ path: path.join(publicDir, 'debug1.png') }); } catch(e){}
 
-    // 확실한 네이티브 마우스 클릭으로 로그인 버튼(헤더) 누르기
+    // 확실한 자바스크립트 클릭으로 로그인 버튼(헤더) 누르기
     try {
-        await page.click('.btn-login');
+        await page.evaluate(() => {
+            const btn = document.querySelector('.btn-login');
+            if (btn) btn.click();
+            else {
+                const btns = Array.from(document.querySelectorAll('button, a, div, li, span'));
+                const loginBtn = btns.find(e => e.innerText && e.innerText.includes('로그인') && !e.innerText.includes('카카오') && e.offsetHeight > 0);
+                if (loginBtn) loginBtn.click();
+                else throw new Error("로그인 버튼을 찾을 수 없음");
+            }
+        });
         log('👉 메인 로그인 버튼 클릭 완료');
     } catch(e) {
-        log('⚠️ btn-login 클래스를 찾을 수 없습니다. 자바스크립트 클릭 시도');
-        await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button, a, div, li, span'));
-            const loginBtn = btns.find(e => e.innerText && e.innerText.includes('로그인') && !e.innerText.includes('카카오') && e.offsetHeight > 0);
-            if (loginBtn) loginBtn.click();
-        });
+        log('⚠️ 메인 로그인 버튼 클릭 실패: ' + e.message);
     }
 
     await delay(2000);
