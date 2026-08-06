@@ -518,44 +518,49 @@ async function doLogin(page) {
         await page.goto(CONFIG.siteBase, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(()=>{});
         await delay(4000);
 
+        // 1. 팝업/오버레이 제거 후 로그인 버튼 클릭
         await page.evaluate(() => {
-            const btn = Array.from(document.querySelectorAll('*')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
+            // 팝업 레이어 제거
+            document.querySelectorAll('[class*="modal"],[class*="overlay"],[class*="popup"],[class*="layer"]').forEach(el => {
+                if (el.style) el.style.display = 'none';
+            });
+            const btn = Array.from(document.querySelectorAll('*')).find(e => e.innerText && e.innerText.trim() === '로그인');
             if (btn) btn.click();
         });
         await delay(2000);
 
+        // 2. 아이디로 시작하기
         await page.evaluate(() => {
-            const btn = Array.from(document.querySelectorAll('*')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.includes('아이디로 시작하기'));
+            const btn = Array.from(document.querySelectorAll('*')).find(e => e.innerText && e.innerText.includes('아이디로 시작하기'));
             if (btn) btn.click();
         });
         await delay(2000);
 
-        const idSel = await page.$('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
-        if (idSel) {
-            await page.evaluate(el => { el.value = ''; el.focus(); }, idSel);
-            await idSel.type(BUBEE_ID, { delay: 80 });
-        }
+        // 3. 입력창에 JS로 직접 focus + keyboard 이벤트로 타이핑
+        const typed = await page.evaluate((id, pw) => {
+            const idEl = document.querySelector('input[name="id"], input[placeholder*="아이디"], input[type="text"]');
+            const pwEl = document.querySelector('input[type="password"]');
+            if (!idEl || !pwEl) return false;
+            idEl.focus(); idEl.value = id;
+            ['input','change'].forEach(ev => idEl.dispatchEvent(new Event(ev, {bubbles:true})));
+            pwEl.focus(); pwEl.value = pw;
+            ['input','change'].forEach(ev => pwEl.dispatchEvent(new Event(ev, {bubbles:true})));
+            return true;
+        }, BUBEE_ID, BUBEE_PW);
+        
+        log(typed ? '아이디/비번 입력 완료' : '입력창 못 찾음!');
+        await delay(1000);
 
-        const pwSel = await page.$('input[type="password"]');
-        if (pwSel) {
-            await page.evaluate(el => { el.value = ''; el.focus(); }, pwSel);
-            await pwSel.type(BUBEE_PW, { delay: 80 });
-        }
-
-        await delay(800);
-        await page.evaluate(() => {
-            const btn = Array.from(document.querySelectorAll('button')).find(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
-            if (btn) { btn.removeAttribute('disabled'); btn.click(); }
-        });
+        // 4. 엔터로 제출
         await page.keyboard.press('Enter');
-        await delay(4000);
+        await delay(5000);
 
         const success = await page.evaluate(() => {
             return !Array.from(document.querySelectorAll('*')).some(e => e.offsetHeight > 0 && e.innerText && e.innerText.trim() === '로그인');
         });
 
         try { await page.screenshot({ path: require('path').join(__dirname, 'public', 'debug_login_result.png') }); } catch(e){}
-        log(success ? '== 자동 로그인 성공! ==' : '== 자동 로그인 실패 ==');
+        log(success ? '== 자동 로그인 성공! ==' : '== 자동 로그인 실패. CCTV에서 debug_login_result.png 확인 ==');
         return success;
     } catch(e) {
         log('doLogin 오류: ' + e.message);
