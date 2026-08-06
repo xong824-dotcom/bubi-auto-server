@@ -338,74 +338,68 @@ function startDashboard() {
     app.use(express.json());
 
     app.get('/live', (req, res) => {
-        res.send(`
-            <html>
-                <head>
-                    <title>부비라이브 봇 실시간 제어</title>
-                    <meta charset="utf-8">
-                    <style>
-                        body { background: #111; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 20px; }
-                        img { max-width: 100%; max-height: 70vh; border: 3px solid #ff4444; border-radius: 10px; cursor: crosshair; }
-                        .controls { margin-bottom: 15px; padding: 15px; background: #222; border-radius: 10px; display: inline-block; }
-                        button, input { padding: 10px 15px; font-size: 16px; margin: 5px; border-radius: 5px; border: none; }
-                        button { cursor: pointer; background: #44aaff; color: white; font-weight: bold; }
-                        button:hover { background: #3388cc; }
-                        .manual-btn { background: #ff4444; }
-                    </style>
-                    <script>
-                        setInterval(() => {
-                            const img = document.getElementById('live-img');
-                            img.src = '/live-image?t=' + new Date().getTime();
-                        }, 1000);
+        res.send(`<!DOCTYPE html>
+<html>
+<head>
+    <title>실시간 CCTV</title>
+    <meta charset="utf-8">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0d0d0d; color: white; font-family: sans-serif; padding: 16px; }
+        h1 { text-align: center; color: #ff4466; font-size: 20px; margin-bottom: 16px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+        .card { background: #1a1a1a; border: 2px solid #333; border-radius: 10px; overflow: hidden; }
+        .card-title { background: #222; padding: 10px 14px; font-size: 13px; font-weight: bold; color: #ffcc00; display:flex; align-items:center; gap:8px; }
+        .dot { width:10px; height:10px; background:#ff4444; border-radius:50%; animation:blink 1s infinite; }
+        .card img { width:100%; display:block; }
+        .card .lbl { padding:5px 12px; font-size:11px; color:#666; background:#111; }
+        .bg-card { border-color: #224488; }
+        .bg-card .card-title { color:#88ccff; }
+        .bg-card .dot { background:#4488ff !important; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .empty { text-align:center; color:#555; padding:60px; }
+        .ts { text-align:center; color:#444; font-size:11px; margin-bottom:10px; }
+    </style>
+</head>
+<body>
+    <h1>🔴 실시간 CCTV — 방별 화면</h1>
+    <div class="ts" id="ts"></div>
+    <div class="grid" id="grid"><div class="empty">⏳ 로딩 중...</div></div>
+    <script>
+        function refresh() {
+            fetch('/api/live/rooms').then(r=>r.json()).then(data=>{
+                const grid = document.getElementById('grid');
+                const rooms = data.rooms||[];
+                if (!rooms.length) { grid.innerHTML='<div class="empty">🚫 현재 봇이 입장한 방이 없습니다.</div>'; return; }
+                grid.innerHTML = rooms.map(r=>\`
+                    <div class="card \${r.type==='bg'?'bg-card':''}">
+                        <div class="card-title"><span class="dot"></span>\${r.name}</div>
+                        <img src="/live-image?room=\${r.key}&t=\${Date.now()}" onerror="this.style.display='none'">
+                        <div class="lbl">key: \${r.key}</div>
+                    </div>\`).join('');
+                document.getElementById('ts').textContent='갱신: '+new Date().toLocaleTimeString('ko-KR');
+            }).catch(()=>{});
+        }
+        refresh();
+        setInterval(refresh, 3000);
+    </script>
+</body>
+</html>`);
+    });
 
-                        async function toggleManual() {
-                            await fetch('/api/live/manual', { method: 'POST' });
-                            alert('수동 조작 모드가 켜졌습니다! 봇이 타이핑을 멈추고 대기합니다.');
-                        }
-                        async function sendClick(e) {
-                            const img = e.target;
-                            const rect = img.getBoundingClientRect();
-                            const x = e.clientX - rect.left;
-                            const y = e.clientY - rect.top;
-                            await fetch('/api/live/click', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ x: x, y: y, width: img.clientWidth, height: img.clientHeight })
-                            });
-                        }
-                        async function sendText() {
-                            const text = document.getElementById('kb-input').value;
-                            if (!text) return;
-                            await fetch('/api/live/type', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ text: text })
-                            });
-                            document.getElementById('kb-input').value = '';
-                        }
-                        async function sendKey(action) {
-                            await fetch('/api/live/type', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ action: action })
-                            });
-                        }
-                    </script>
-                </head>
-                <body>
-                    <h1>🔴 실시간 CCTV 및 원격 제어</h1>
-                    <div class="controls">
-                        <button class="manual-btn" onclick="toggleManual()">🛑 수동 조작 모드 켜기 (봇 멈춤)</button><br><br>
-                        <input type="text" id="kb-input" placeholder="봇에게 보낼 글자 입력..." />
-                        <button onclick="sendText()">입력 전송</button>
-                        <button onclick="sendKey('Backspace')">지우기(Back)</button>
-                        <button onclick="sendKey('Enter')">엔터(Enter)</button>
-                    </div>
-                    <p style="color: yellow;">💡 아래 화면을 클릭하면 봇의 마우스가 똑같이 클릭합니다!</p>
-                    <img id="live-img" src="/live-image" onclick="sendClick(event)" />
-                </body>
-            </html>
-        `);
+    app.get('/api/live/rooms', (req, res) => {
+        const rooms = [];
+        if (global.activeRooms) {
+            for (const [vod_key, p] of global.activeRooms.entries()) {
+                if (p && !p.isClosed()) {
+                    rooms.push({ key: String(vod_key), name: p.bjName || p.user_key || String(vod_key), type: 'room' });
+                }
+            }
+        }
+        if (global.bgPage && !global.bgPage.isClosed()) {
+            rooms.push({ key: 'bg', name: '🌐 메인(로그인 화면)', type: 'bg' });
+        }
+        res.json({ rooms });
     });
 
     app.post('/api/live/manual', (req, res) => {
@@ -417,13 +411,9 @@ function startDashboard() {
         const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
         if (page && !page.isClosed()) {
             const { x, y, width, height } = req.body;
-            const targetX = x * (1280 / width);
-            const targetY = y * (720 / height);
-            try { await page.mouse.click(targetX, targetY); } catch(e){}
+            try { await page.mouse.click(x*(1280/width), y*(720/height)); } catch(e){}
             res.json({ success: true });
-        } else {
-            res.status(404).json({ success: false });
-        }
+        } else res.status(404).json({ success: false });
     });
 
     app.post('/api/live/type', async (req, res) => {
@@ -435,29 +425,34 @@ function startDashboard() {
                 else if (text) await page.keyboard.type(text);
             } catch(e){}
             res.json({ success: true });
-        } else {
-            res.status(404).json({ success: false });
-        }
+        } else res.status(404).json({ success: false });
     });
 
     app.get('/live-image', async (req, res) => {
-        const page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
+        const roomKey = req.query.room;
+        let page = null;
+        if (roomKey === 'bg') {
+            page = global.bgPage;
+        } else if (roomKey && global.activeRooms) {
+            page = global.activeRooms.get(roomKey) || global.activeRooms.get(Number(roomKey));
+        }
+        if (!page || page.isClosed()) {
+            page = (global.livePage && !global.livePage.isClosed()) ? global.livePage : global.bgPage;
+        }
         if (page && !page.isClosed()) {
             try {
-                const buffer = await page.screenshot({ type: 'jpeg', quality: 60 });
+                const buf = await page.screenshot({ type: 'jpeg', quality: 55 });
                 res.set('Content-Type', 'image/jpeg');
-                res.send(buffer);
-            } catch(e) {
-                res.status(500).send('Screenshot error');
-            }
-        } else {
-            res.status(404).send('Not running');
-        }
+                res.send(buf);
+            } catch(e) { res.status(500).send('err'); }
+        } else res.status(404).send('not running');
     });
 
     app.listen(CONFIG.port, () => {
         log(`🌐 웹 대시보드 서버 오픈: http://localhost:${CONFIG.port}`);
         log(`🔴 실시간 CCTV 원격제어: http://localhost:${CONFIG.port}/live`);
+    });
+}
     });
 }
 
