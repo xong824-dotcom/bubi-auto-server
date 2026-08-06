@@ -762,6 +762,29 @@ async function main() {
             log(`✅ 백그라운드 무한 연장 엔진 가동! (현재 비로그인 상태. CCTV에서 로그인 시 자동 백업됨)`);
         }
         
+        // 🚀 자동 로그인 로직 연결
+        log(`🔍 현재 로그인 상태를 검증합니다...`);
+        const isLoggedIn = await global.bgPage.evaluate(() => {
+            const html = document.body.innerHTML;
+            return !html.includes('로그인 하기') && !html.includes('로그인이 필요합니다') && (document.querySelector('input[type="password"]') === null);
+        });
+
+        if (!isLoggedIn) {
+            log(`⚠️ 쿠키가 만료되었거나 로그인이 풀려있습니다. 자동 로그인을 시도합니다!`);
+            const success = await doLogin(global.bgPage);
+            if (success) {
+                const currentCookies = await global.bgPage.cookies();
+                if (currentCookies.find(c => c.name === 'auth_token')) {
+                    fs.writeFileSync(cookiePath, JSON.stringify(currentCookies, null, 2));
+                    log('✅ 자동 로그인 성공! 새로운 쿠키가 저장되었습니다!');
+                }
+            } else {
+                log('❌ 자동 로그인 실패! 수동으로 로그인해주세요.');
+            }
+        } else {
+            log('✅ 정상적으로 로그인 되어있습니다.');
+        }
+        
         // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
         setInterval(async () => {
             try { 
