@@ -243,7 +243,15 @@
             sendButton = Array.from(document.querySelectorAll('button')).find(b => b.innerText && (b.innerText.includes('전송') || b.innerText.includes('보내기')));
         }
 
-        chatInput.value = text;
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+        
+        if (chatInput.tagName === 'TEXTAREA') {
+            nativeTextAreaValueSetter.call(chatInput, text);
+        } else {
+            nativeInputValueSetter.call(chatInput, text);
+        }
+        
         chatInput.dispatchEvent(new Event('input', { bubbles: true }));
         chatInput.dispatchEvent(new Event('change', { bubbles: true }));
 
