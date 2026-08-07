@@ -644,9 +644,9 @@
             let customStr = customKeys.length > 0 ? `\n\n✨ [커스텀 명령어]\n!` + customKeys.join(' / !') : '';
             
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !시그등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
             }
         }
         else if (cmd === '!신청') {
@@ -850,6 +850,27 @@
                 queueMessage(`❌ 등록된 미션이 없습니다. '!미션등록 [내용]' 명령어로 먼저 등록해주세요!`);
             }
         }
+        // ================= [ 시그 조회 (한 번에 전송) ] =================
+        else if (cmd === '!시그') {
+            const sigText = DB.settings.bjSigText;
+            if (sigText && sigText.trim() !== '') {
+                const rawLines = sigText.split(/\\n|\n/);
+                let finalLines = [];
+
+                rawLines.forEach(rawLine => {
+                    const lineStr = rawLine.trim();
+                    if (!lineStr) return;
+                    
+                    const wrappedLines = autoWordWrap(lineStr, 40); 
+                    finalLines.push(...wrappedLines);
+                });
+
+                const fullMsg = `✨ [현재 시그]\n` + finalLines.join('\n');
+                queueMessage(fullMsg);
+            } else {
+                queueMessage(`❌ 등록된 시그가 없습니다. '!시그등록 [내용]' 명령어로 먼저 등록해주세요!`);
+            }
+        }
         // ================= [ 미션 등록 (호스트/매니저 전용) ] =================
         else if (cmd === '!미션등록') {
             if (!isHostOrManager) {
@@ -864,6 +885,22 @@
                 logStatus(`[미션 등록] 텍스트 내용 업데이트 됨`);
             } else {
                 queueMessage(`❌ 등록할 미션 내용을 뒤에 함께 적어주세요! (예: !미션등록 1. 춤추기 2. 노래하기)`);
+            }
+        }
+        // ================= [ 시그 등록 (호스트/매니저 전용) ] =================
+        else if (cmd === '!시그등록') {
+            if (!isHostOrManager) {
+                queueMessage(`❌ 시그 등록은 호스트와 매니저만 가능합니다.`);
+                return;
+            }
+            const content = text.replace(/^!시그등록\s*/i, '').trim();
+            if (content) {
+                DB.settings.bjSigText = content;
+                saveDB();
+                queueMessage(`✅ 시그 목록이 성공적으로 등록되었습니다!`);
+                logStatus(`[시그 등록] 텍스트 내용 업데이트 됨`);
+            } else {
+                queueMessage(`❌ 등록할 시그 내용을 뒤에 함께 적어주세요! (예: !시그등록 이번 시그는 토끼입니다)`);
             }
         }
         // ================= [ 킵 메모 기능 (호스트/매니저 전용) ] =================

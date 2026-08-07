@@ -372,6 +372,10 @@
                     <label class="form-label">!미션 (시청자가 !미션 쳤을 때 나올 내용)</label>
                     <textarea id="missionText" class="form-input" placeholder="현재 미션 내용 입력">${botDB.settings.bjMissionText || ''}</textarea>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">!시그 (시청자가 !시그 쳤을 때 나올 내용)</label>
+                    <textarea id="sigText" class="form-input" placeholder="현재 시그 내용 입력">${botDB.settings.bjSigText || ''}</textarea>
+                </div>
                 <button class="btn btn-primary" onclick="saveProfile()">내용 저장하기 (실시간 반영)</button>
             `;
         } else if (currentTab === 'commands') {
@@ -461,6 +465,7 @@
     function saveProfile() {
         botDB.settings.bjProfileText = document.getElementById('profileText').value;
         botDB.settings.bjMissionText = document.getElementById('missionText').value;
+        botDB.settings.bjSigText = document.getElementById('sigText').value;
         saveDBToServer();
     }
 
