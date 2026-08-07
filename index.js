@@ -337,6 +337,99 @@ function startDashboard() {
 
     app.use(express.json());
 
+    const sseClients = new Map();
+
+    app.get('/player/:roomKey', (req, res) => {
+        const roomKey = req.params.roomKey;
+        res.send(`<!DOCTYPE html>
+<html><head><title>BJ 전용 유튜브 플레이어</title>
+<style>body{margin:0;background:#000;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;}
+#player-container{width:100%;height:100%;max-width:1280px;max-height:720px;display:none;}</style>
+</head><body>
+<h2 id="status" style="margin:20px;">🎶 대기 중... (채팅창에서 신청곡이 들어오면 자동 재생됩니다)</h2>
+<div id="player-container"><div id="player"></div></div>
+<script>
+    var player;
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            height: '100%', width: '100%', videoId: '',
+            playerVars: { 'autoplay': 1, 'controls': 1 },
+            events: { 'onStateChange': onPlayerStateChange, 'onReady': onPlayerReady }
+        });
+    }
+
+    function onPlayerReady(event) { connectSSE(); }
+
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.ENDED) {
+            fetch('/api/live/music-ended', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ roomKey: '${roomKey}' }) });
+            document.getElementById('player-container').style.display = 'none';
+            document.getElementById('status').style.display = 'block';
+            document.getElementById('status').innerText = "🎶 다음 신청곡을 기다리는 중...";
+        }
+    }
+
+    function connectSSE() {
+        const evtSource = new EventSource('/api/live/music-stream/${roomKey}');
+        evtSource.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'play' && data.videoId) {
+                document.getElementById('status').style.display = 'none';
+                document.getElementById('player-container').style.display = 'block';
+                player.loadVideoById(data.videoId);
+            }
+        };
+        evtSource.onerror = function() { console.log("SSE 에러, 재연결 중..."); };
+    }
+</script></body></html>`);
+    });
+
+    app.get('/api/live/music-stream/:roomKey', (req, res) => {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        const roomKey = req.params.roomKey;
+        sseClients.set(roomKey, res);
+        req.on('close', () => { sseClients.delete(roomKey); });
+    });
+
+    app.post('/api/live/music-ended', async (req, res) => {
+        const { roomKey } = req.body;
+        const page = global.activeRooms ? (global.activeRooms.get(roomKey) || global.activeRooms.get(Number(roomKey))) : null;
+        if (page && !page.isClosed()) {
+            page.evaluate(() => { if (typeof processNextSong === 'function') processNextSong(); }).catch(e=>{});
+        }
+        res.json({success: true});
+    });
+
+    app.post('/api/live/play-music', async (req, res) => {
+        const { roomKey, songName } = req.body;
+        try {
+            const yts = require('yt-search');
+            const r = await yts(songName);
+            if (r.videos.length > 0) {
+                const videoId = r.videos[0].videoId;
+                const client = sseClients.get(roomKey) || sseClients.get(String(roomKey));
+                if (client) {
+                    client.write(`data: ${JSON.stringify({ type: 'play', videoId })}\n\n`);
+                    res.json({ success: true, duration: r.videos[0].seconds });
+                    return;
+                } else {
+                    res.json({ success: false, msg: 'BJ가 플레이어 창을 켜지 않았습니다' });
+                    return;
+                }
+            }
+            res.json({ success: false, msg: '검색된 영상이 없습니다' });
+        } catch (e) {
+            res.status(500).json({ success: false, err: e.message });
+        }
+    });
+
     app.get('/live', (req, res) => {
         res.send(`<!DOCTYPE html>
 <html><head><title>실시간 CCTV</title><meta charset="utf-8">
