@@ -515,6 +515,9 @@
                 queueMessage(`💖 ${nick}님 ${amount}개 후원 너무 감사합니다! 윙쿠♥❤️`);
             }
 
+            if (!DB.recentDonationsByAmount) DB.recentDonationsByAmount = {};
+            DB.recentDonationsByAmount[amount] = { nick: nick, time: Date.now() };
+
             const today = getToday();
             if (!DB.receivedGifts) DB.receivedGifts = {};
             if (!DB.receivedGifts[today]) DB.receivedGifts[today] = {};
@@ -571,6 +574,9 @@
             } else {
                 queueMessage(`💖 ${nick}님 ${amount}개 후원 너무 감사합니다! 윙쿠♥❤️`);
             }
+
+            if (!DB.recentDonationsByAmount) DB.recentDonationsByAmount = {};
+            DB.recentDonationsByAmount[amount] = { nick: nick, time: Date.now() };
 
             const today = getToday();
             if (!DB.receivedGifts) DB.receivedGifts = {};
@@ -644,9 +650,20 @@
             let customStr = customKeys.length > 0 ? `\n\n✨ [커스텀 명령어]\n!` + customKeys.join(' / !') : '';
             
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !시그등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !시그등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / ![숫자] / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !시그 / !킵목록 / !신청 / !신청곡 / ![숫자] / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+            }
+        }
+        else if (/^!\d+$/.test(cmd)) {
+            const amount = parseInt(cmd.substring(1));
+            if (DB.recentDonationsByAmount && DB.recentDonationsByAmount[amount]) {
+                const info = DB.recentDonationsByAmount[amount];
+                const diffMin = Math.floor((Date.now() - info.time) / 60000);
+                const timeStr = diffMin === 0 ? '방금 전' : `${diffMin}분 전`;
+                queueMessage(`🎁 [후원 검색] ${timeStr}에 ${amount}개를 후원하신 분은 [${info.nick}]님 입니다!`);
+            } else {
+                queueMessage(`❌ 봇이 켜진 이후에 ${amount}개를 후원한 기록이 없습니다.`);
             }
         }
         else if (cmd === '!신청') {
