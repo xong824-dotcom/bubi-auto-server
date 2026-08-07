@@ -22,6 +22,30 @@
         });
     }
 
+
+    /* ================================================================
+       신청곡 큐 시스템 상태
+    ================================================================ */
+    window.songRequests = window.songRequests || [];
+    window.songTimer = window.songTimer || null;
+
+    function processNextSong() {
+        if (window.songRequests.length > 0) {
+            window.songRequests.shift(); // 1번 삭제
+            if (window.songRequests.length > 0) {
+                const nextSong = window.songRequests[0];
+                if (typeof queueMessage === 'function') {
+                    queueMessage(`🎵 다음 신청곡 [${nextSong.title}] 재생될 차례입니다! (${nextSong.nick}님 신청)`);
+                }
+                window.songTimer = setTimeout(processNextSong, 5 * 60 * 1000);
+            } else {
+                window.songTimer = null;
+            }
+        } else {
+            window.songTimer = null;
+        }
+    }
+
     /* ================================================================
        1. 데이터베이스 및 로컬 스토리지 관리
     ================================================================ */
@@ -620,11 +644,43 @@
             let customStr = customKeys.length > 0 ? `\n\n✨ [커스텀 명령어]\n!` + customKeys.join(' / !') : '';
             
             if (isHostOrManager) {
-                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [매니저 명령어]\n!등록 [단어] [내용] / !삭제 [단어]\n!프로필등록 / !미션등록 / !킵 / !킵삭제\n!안내문등록 [분] [내용] / !안내문종료 [번호]\n\n👤 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
             } else {
-                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
+                queueMessage(`🤖 [일반 명령어]\n!출석 / !운세 / !타임 / !주사위 / !뽑기 / !프로필 / !미션 / !킵목록 / !신청 / !신청곡 / !채팅순위 / !후원순위 / !어제순위 / !한달순위${customStr}`);
             }
         }
+        else if (cmd === '!신청') {
+            const songName = text.substring(cmd.length).trim();
+            if (!songName) {
+                queueMessage(`🤖 [신청 오류] 제목이나 가수를 적어주세요! (예: !신청 밤양갱-비비)`);
+                return;
+            }
+            
+            const isFirst = window.songRequests.length === 0;
+            window.songRequests.push({ title: songName, nick: nick });
+            const waitNumber = window.songRequests.length;
+            
+            queueMessage(`✅ [${songName}] 신청이 완료되었습니다. (대기번호 ${waitNumber}번)`);
+            
+            if (isFirst) {
+                queueMessage(`🎵 첫 신청곡 [${songName}] 지금부터 시작됩니다! (5분 뒤 자동 삭제)`);
+                if (window.songTimer) clearTimeout(window.songTimer);
+                window.songTimer = setTimeout(processNextSong, 5 * 60 * 1000);
+            }
+        }
+        else if (cmd === '!신청곡') {
+            if (window.songRequests.length === 0) {
+                queueMessage(`🎧 현재 대기 중인 신청곡이 없습니다.`);
+                return;
+            }
+            
+            let reqMsg = `🎧 [신청곡 리스트] (총 ${window.songRequests.length}곡 대기중)\n`;
+            window.songRequests.forEach((req, idx) => {
+                reqMsg += `${idx + 1}. ${req.title} (${req.nick})\n`;
+            });
+            queueMessage(reqMsg.trim());
+        }
+
         else if (cmd === '!출석') {
             const month = getMonth();
             const rec = DB.attendance[month]?.[userId];
