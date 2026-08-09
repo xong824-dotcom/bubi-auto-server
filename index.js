@@ -862,6 +862,19 @@ async function main() {
         if (rawCookies.length > 0) {
             let cookies = rawCookies.map(c => ({ ...c, url: CONFIG.siteBase }));
             await global.bgPage.setCookie(...cookies);
+            
+            // 프론트엔드(Vue/React)가 LocalStorage를 검사해서 튕겨내는 것을 방지
+            await global.bgPage.evaluateOnNewDocument((cookieData) => {
+                cookieData.forEach(c => {
+                    localStorage.setItem(c.name, c.value);
+                    if (c.name === 'auth_token' && c.value.startsWith('Bearer%20')) {
+                        localStorage.setItem('token', decodeURIComponent(c.value).replace('Bearer ', ''));
+                    } else if (c.name === 'auth_token' && c.value.startsWith('Bearer ')) {
+                        localStorage.setItem('token', c.value.replace('Bearer ', ''));
+                    }
+                });
+            }, rawCookies);
+
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
             
             // ✅ 쿠키 주입 후 실제로 로그인됐는지 확인
