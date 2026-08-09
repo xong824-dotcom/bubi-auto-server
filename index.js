@@ -657,17 +657,33 @@ async function doLogin(page) {
     });
     page.on('request', request => {
         const url = request.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
+        if (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token')) {
             log(`[네트워크 요청] ${request.method()} ${url}`);
+            if (request.method() === 'POST') {
+                try { log(`[요청 바디] ${request.postData()?.substring(0, 200)}`); } catch(e) {}
+            }
         }
     });
     page.on('response', async response => {
         const url = response.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('signin')) {
+        if (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token')) {
             log(`[네트워크 응답] ${response.status()} ${url}`);
             try {
                 const text = await response.text();
                 log(`[응답 내용] ${text.substring(0, 500)}`);
+                // 응답에서 auth_token 자동 캡처
+                try {
+                    const json = JSON.parse(text);
+                    const token = json.auth_token || json.token || json.data?.auth_token || json.data?.token || json.result?.auth_token || json.accessToken || json.access_token;
+                    if (token) {
+                        log(`🎉 [네트워크 인터셉터] auth_token 자동 캡처 성공!`);
+                        const cookiePath = path.join(DATA_DIR, 'cookies.json');
+                        const newCookie = [{ name: 'auth_token', value: encodeURIComponent(token), domain: 'bubeelive.com', path: '/' }];
+                        fs.writeFileSync(cookiePath, JSON.stringify(newCookie, null, 2));
+                        // 현재 페이지 쿠키에도 주입
+                        try { await page.setCookie(...newCookie.map(c => ({ ...c, url: CONFIG.siteBase }))); } catch(e) {}
+                    }
+                } catch(e) {}
             } catch(e) {}
         }
     });
