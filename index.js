@@ -657,7 +657,7 @@ async function doLogin(page) {
     });
     page.on('request', request => {
         const url = request.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token')) {
+        if (url.includes('bubeelive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 요청] ${request.method()} ${url}`);
             if (request.method() === 'POST') {
                 try { log(`[요청 바디] ${request.postData()?.substring(0, 200)}`); } catch(e) {}
@@ -666,11 +666,11 @@ async function doLogin(page) {
     });
     page.on('response', async response => {
         const url = response.url();
-        if (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token')) {
+        if (url.includes('bubeelive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 응답] ${response.status()} ${url}`);
             try {
                 const text = await response.text();
-                log(`[응답 내용] ${text.substring(0, 500)}`);
+                log(`[응답 내용] ${text.substring(0, 300)}`);
                 // 응답에서 auth_token 자동 캡처
                 try {
                     const json = JSON.parse(text);
@@ -680,7 +680,6 @@ async function doLogin(page) {
                         const cookiePath = path.join(DATA_DIR, 'cookies.json');
                         const newCookie = [{ name: 'auth_token', value: encodeURIComponent(token), domain: 'bubeelive.com', path: '/' }];
                         fs.writeFileSync(cookiePath, JSON.stringify(newCookie, null, 2));
-                        // 현재 페이지 쿠키에도 주입
                         try { await page.setCookie(...newCookie.map(c => ({ ...c, url: CONFIG.siteBase }))); } catch(e) {}
                     }
                 } catch(e) {}
