@@ -711,62 +711,93 @@ async function doLogin(page) {
         return true;
     }
 
-    // STEP 3: 헤더 로그인 버튼 클릭
-    // 핵심: children이 없는 리프 텍스트 노드만 찾아야 실제 버튼을 클릭 (부모 컨테이너 방지)
-    log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
-    let headerClicked = false;
-    for (let i = 0; i < 20; i++) {
-        const coord = await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('button, a, li, span, div'));
-            const el = all.find(e => {
-                if (!e.offsetWidth || !e.offsetHeight) return false;
-                // 자식 요소가 없는 리프 노드이거나, 자식이 아이콘 img/svg만 있는 경우만 허용
-                const nonIconChildren = Array.from(e.children).filter(c => c.tagName !== 'IMG' && c.tagName !== 'SVG' && c.tagName !== 'I');
-                const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
-                return txt === '로그인' && nonIconChildren.length === 0;
+    // STEP 3: 헤더 로그인 버튼 클릭 (named function으로 재사용 가능)
+    async function clickLoginHeaderBtn() {
+        for (let i = 0; i < 20; i++) {
+            const coord = await page.evaluate(() => {
+                const all = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                const el = all.find(e => {
+                    if (!e.offsetWidth || !e.offsetHeight) return false;
+                    const nonIconChildren = Array.from(e.children).filter(c => c.tagName !== 'IMG' && c.tagName !== 'SVG' && c.tagName !== 'I');
+                    const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
+                    return txt === '로그인' && nonIconChildren.length === 0;
+                });
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return { x: r.left + r.width/2, y: r.top + r.height/2 };
             });
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { x: r.left + r.width/2, y: r.top + r.height/2 };
-        });
-        if (coord) {
-            await page.mouse.move(coord.x, coord.y);
-            await delay(150);
-            await page.mouse.click(coord.x, coord.y);
-            log(`✅ 로그인 버튼 클릭 완료 (${Math.round(coord.x)}, ${Math.round(coord.y)})`);
-            headerClicked = true;
-            break;
+            if (coord) {
+                await page.mouse.move(coord.x, coord.y);
+                await delay(150);
+                await page.mouse.click(coord.x, coord.y);
+                log(`✅ 로그인 버튼 클릭 완료 (${Math.round(coord.x)}, ${Math.round(coord.y)})`);
+                return true;
+            }
+            await delay(700);
         }
-        await delay(700);
+        return false;
     }
+
+    // 아이디로 시작하기 OR 최근 로그인 계정 클릭
+    async function clickIdLoginBtn() {
+        const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4)];
+        for (let i = 0; i < 10; i++) {
+            const coord = await page.evaluate((kws) => {
+                const all = Array.from(document.querySelectorAll('button, a, li, span, div, p'));
+                for (const kw of kws) {
+                    const el = all.find(e => {
+                        if (!e.offsetWidth || !e.offsetHeight) return false;
+                        const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
+                        return txt.includes(kw.replace(/\s+/g, ''));
+                    });
+                    if (el) {
+                        const r = el.getBoundingClientRect();
+                        return { x: r.left + r.width/2, y: r.top + r.height/2, found: kw };
+                    }
+                }
+                return null;
+            }, keywords);
+            if (coord) {
+                await page.mouse.move(coord.x, coord.y);
+                await delay(150);
+                await page.mouse.click(coord.x, coord.y);
+                log(`✅ "${coord.found}" 클릭 완료`);
+                return true;
+            }
+            await delay(500);
+        }
+        return false;
+    }
+
+    log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
+    const headerClicked = await clickLoginHeaderBtn();
     if (!headerClicked) log('⚠️ 로그인 버튼 못 찾음. 다음 단계 진행...');
     await delay(2000);
     try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
 
-    // STEP 4: "아이디로 시작하기" 클릭 (있는 경우)
-    log('👉 STEP 4: 아이디로 시작하기 버튼 탐색...');
-    const idStartClicked = await clickByText(['아이디로 시작하기', '아이디 로그인', '이메일로 로그인'], { timeout: 5000 });
+    // STEP 4: 최근 로그인 계정 or 아이디로 시작하기 클릭
+    log('👉 STEP 4: 로그인 방식 선택...');
+    const idStartClicked = await clickIdLoginBtn();
     if (idStartClicked) {
-        log('✅ STEP 4: 아이디로 시작하기 클릭 완료');
+        log('✅ STEP 4: 로그인 방식 선택 완료');
         await delay(1500);
     } else {
-        log('ℹ️ STEP 4: 아이디로 시작하기 버튼 없음 (이미 폼이 열린 상태)');
+        log('ℹ️ STEP 4: 선택 버튼 없음 (이미 폼이 열린 상태)');
     }
     try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
 
-    // 로그인 폼(아이디/비밀번호 입력란)이 실제로 보이는지 확인
+    // 로그인 폼 실제 존재 여부 확인
     const formVisible = await page.evaluate(() => {
         const idInput = document.querySelector('input[name="id"], input[name="userId"], input[name="loginId"], input[placeholder*="아이디"]');
         return !!(idInput && idInput.offsetWidth > 0);
     });
     if (!formVisible) {
-        log('⚠️ 로그인 폼이 안 보입니다. 헤더 로그인 버튼을 다시 클릭합니다...');
+        log('⚠️ 로그인 폼이 안 보입니다. 처음부터 다시 시도...');
         await clickLoginHeaderBtn();
         await delay(2000);
-        const idStartClicked2 = await clickByText(['아이디로 시작하기', '아이디 로그인', '이메일로 로그인'], { timeout: 5000 });
-        if (idStartClicked2) await delay(1500);
+        await clickIdLoginBtn();
+        await delay(1500);
     }
-
 
     // ─────────────────────────────────────
     // STEP 5: 아이디/비밀번호 입력 (최대 8회 재시도)
