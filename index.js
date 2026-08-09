@@ -1114,12 +1114,7 @@ async function main() {
 
             for (const activeVodKey of activeRooms.keys()) {
                 if (!currentLiveVodKeys.has(activeVodKey)) {
-                    // await closeRoom(activeVodKey); // 🚀 방송이 종료되더라도 봇이 나가지 않도록 주석 처리 (대시보드에서 삭제할 때만 퇴장)
-                    if (!global.keptRooms) global.keptRooms = new Set();
-                    if (!global.keptRooms.has(activeVodKey)) {
-                        log(`[방 유지] 방송(${activeVodKey})이 종료되었지만 봇은 방에 남습니다.`);
-                        global.keptRooms.add(activeVodKey);
-                    }
+                    await closeRoom(activeVodKey); // 방송이 종료되면 방에서 나갑니다 (CCTV 닫힘)
                 }
             }
         } catch (e) {
