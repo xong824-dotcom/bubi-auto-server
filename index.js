@@ -676,11 +676,15 @@ async function doLogin(page) {
                     const json = JSON.parse(text);
                     const token = json.auth_token || json.token || json.data?.auth_token || json.data?.token || json.result?.auth_token || json.accessToken || json.access_token;
                     if (token) {
-                        log(`🎉 [네트워크 인터셉터] auth_token 자동 캡처 성공!`);
-                        const cookiePath = path.join(DATA_DIR, 'cookies.json');
-                        const newCookie = [{ name: 'auth_token', value: encodeURIComponent(token), domain: 'bubeelive.com', path: '/' }];
-                        fs.writeFileSync(cookiePath, JSON.stringify(newCookie, null, 2));
-                        try { await page.setCookie(...newCookie.map(c => ({ ...c, url: CONFIG.siteBase }))); } catch(e) {}
+                        log(`🎉 [네트워크 인터셉터] auth_token 자동 캡처 성공! 모든 브라우저 쿠키를 저장합니다.`);
+                        // 페이지에 설정된 모든 쿠키(refresh_token 등 포함)를 저장
+                        setTimeout(async () => {
+                            try {
+                                const allCookies = await page.cookies();
+                                const cookiePath = path.join(DATA_DIR, 'cookies.json');
+                                fs.writeFileSync(cookiePath, JSON.stringify(allCookies, null, 2));
+                            } catch(e) {}
+                        }, 2000); // 쿠키가 세팅될 시간 약간 대기
                     }
                 } catch(e) {}
             } catch(e) {}
