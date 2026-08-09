@@ -806,8 +806,11 @@ async function doLogin(page) {
 
     // 아이디로 시작하기 OR 최근 로그인 계정 클릭
     async function clickIdLoginBtn() {
-        const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4)];
+        // 화면에 'xo***' 형태로 마스킹되어서 나오는 경우 대응
+        const maskedId = BUBEE_ID.substring(0, 2) + '***'; 
+        const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4), maskedId];
         for (let i = 0; i < 10; i++) {
+
             const coord = await page.evaluate((kws) => {
                 const all = Array.from(document.querySelectorAll('button, a, li, span, div, p'));
                 for (const kw of kws) {
