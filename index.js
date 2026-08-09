@@ -631,18 +631,30 @@ async function doLogin(page) {
 
     // 확실한 네이티브 마우스 클릭으로 로그인 버튼(헤더) 누르기
     try {
-        await page.click('.btn-login');
-        log('👉 메인 로그인 버튼 클릭 완료');
-    } catch(e) {
-        log('⚠️ btn-login 클래스를 찾을 수 없습니다. 자바스크립트 클릭 시도');
-        await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button, a, div, li, span'));
-            const loginBtn = btns.find(e => e.innerText && e.innerText.includes('로그인') && !e.innerText.includes('카카오') && e.offsetHeight > 0);
-            if (loginBtn) loginBtn.click();
+        log('👉 로그인 버튼 찾는 중...');
+        const clicked = await page.evaluate(async () => {
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+            for(let i=0; i<10; i++) {
+                let btn = document.querySelector('.btn-login') || document.querySelector('a[href*="login"]');
+                if (!btn) {
+                    const els = Array.from(document.querySelectorAll('button, a, div, span'));
+                    btn = els.find(e => e.innerText && e.innerText.trim() === '로그인' && e.offsetHeight > 0);
+                }
+                if (btn) {
+                    btn.click();
+                    return true;
+                }
+                await delay(1000);
+            }
+            return false;
         });
+        if (clicked) log('👉 메인 로그인 버튼 클릭 완료');
+        else log('⚠️ 로그인 버튼을 찾을 수 없습니다.');
+    } catch(e) {
+        log('⚠️ 로그인 버튼 클릭 중 에러: ' + e.message);
     }
 
-    await delay(2000);
+    await delay(3000);
     
     // 🚀 부비라이브 신규 로그인 UI 대응: "아이디로 시작하기" 버튼 클릭
     log('👉 로그인 수단 선택: "아이디로 시작하기" 찾는 중...');
