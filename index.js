@@ -777,203 +777,29 @@ async function doLogin(page) {
         return true;
     }
 
-    // STEP 3: 헤더 로그인 버튼 클릭 (named function으로 재사용 가능)
-    async function clickLoginHeaderBtn() {
-        for (let i = 0; i < 20; i++) {
-            const coord = await page.evaluate(() => {
-                const all = Array.from(document.querySelectorAll('button, a, li, span, div'));
-                const el = all.find(e => {
-                    if (!e.offsetWidth || !e.offsetHeight) return false;
-                    const nonIconChildren = Array.from(e.children).filter(c => c.tagName !== 'IMG' && c.tagName !== 'SVG' && c.tagName !== 'I');
-                    const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
-                    return txt === '로그인' && nonIconChildren.length === 0;
-                });
-                if (!el) return null;
-                const r = el.getBoundingClientRect();
-                return { x: r.left + r.width/2, y: r.top + r.height/2 };
-            });
-            if (coord) {
-                await page.mouse.move(coord.x, coord.y);
-                await delay(150);
-                await page.mouse.click(coord.x, coord.y);
-                log(`✅ 로그인 버튼 클릭 완료 (${Math.round(coord.x)}, ${Math.round(coord.y)})`);
-                return true;
-            }
-            await delay(700);
-        }
-        return false;
-    }
-
-    // 아이디로 시작하기 OR 최근 로그인 계정 클릭
-    async function clickIdLoginBtn() {
-        // 화면에 'xo***' 형태로 마스킹되어서 나오는 경우 대응
-        const maskedId = BUBEE_ID.substring(0, 2) + '***'; 
-        const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4), maskedId];
-        for (let i = 0; i < 10; i++) {
-            const clickedFound = await page.evaluate((kws) => {
-                // querySelectorAll은 부모부터 반환하므로 reverse()하여 가장 안쪽(자식) 요소부터 탐색
-                const all = Array.from(document.querySelectorAll('button, a, li, span, div, p')).reverse();
-                for (const kw of kws) {
-                    const el = all.find(e => {
-                        if (!e.offsetWidth || !e.offsetHeight) return false;
-                        const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
-                        // 텍스트를 포함하면서, 화면에 보이는 엘리먼트 중 가장 안쪽 엘리먼트 선택
-                        return txt.includes(kw.replace(/\s+/g, ''));
-                    });
-                    if (el) {
-                        // 투명 오버레이를 무시하고 DOM에서 강제로 바로 클릭해버립니다.
-                        el.click();
-                        return kw;
-                    }
-                }
-                return null;
-            }, keywords);
-            
-            if (clickedFound) {
-                log(`✅ "${clickedFound}" 직접 강제 클릭 완료!`);
-                return true;
-            }
-            await delay(500);
-        }
-        return false;
-    }
-
-    log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
-    const headerClicked = await clickLoginHeaderBtn();
-    if (!headerClicked) log('⚠️ 로그인 버튼 못 찾음. 다음 단계 진행...');
-
-    // 모달이 뜰 때까지 최대 10초 대기 (modal container 또는 소셜 로그인 버튼 감지)
-    log('⏳ 로그인 모달 대기 중...');
-    let modalDetected = false;
-    for (let i = 0; i < 20; i++) {
-        const detected = await page.evaluate(() => {
-            // 모달 안에 소셜 로그인 버튼이나 아이디 입력창이 보이면 OK
-            const hasIdInput = !!document.querySelector('input[name="id"], input[name="userId"], input[placeholder*="아이디"]');
-            const hasSocialBtn = Array.from(document.querySelectorAll('button, a, li, div, span'))
-                .some(e => e.offsetWidth > 0 && e.innerText && (
-                    e.innerText.includes('아이디로 시작하기') ||
-                    e.innerText.includes('카카오') ||
-                    e.innerText.includes('구글') ||
-                    e.innerText.includes('Google') ||
-                    e.innerText.includes('Kakao')
-                ));
-            return hasIdInput || hasSocialBtn;
-        });
-        if (detected) { modalDetected = true; break; }
-        await delay(500);
-    }
-    try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
-
-    if (!modalDetected) {
-        log('⚠️ 모달 감지 실패. 그냥 계속 진행...');
-    } else {
-        log('✅ 로그인 모달 감지 완료!');
-    }
-
-    // STEP 4: 모달 안에서 아이디 로그인 경로 선택
-    // 이미 ID/PW 폼이 열려있으면 스킵, 아니면 소셜 선택화면에서 "아이디로 시작하기" 클릭
-    log('👉 STEP 4: 로그인 방식 선택...');
-    const alreadyHasIdForm = await page.evaluate(() => {
-        const el = document.querySelector('input[name="id"], input[name="userId"], input[placeholder*="아이디"]');
-        return !!(el && el.offsetWidth > 0);
-    });
-
-    if (alreadyHasIdForm) {
-        log('✅ STEP 4: 이미 아이디 입력 폼이 열려있음. 스킵.');
-    } else {
-        // 소셜 선택 화면 → "아이디로 시작하기" 클릭
-        const found = await clickIdLoginBtn();
-        if (found) {
-            log('✅ STEP 4: 로그인 방식 선택 완료. 폼 대기...');
-            await delay(2000);
-        } else {
-            log('⚠️ STEP 4: 버튼 못 찾음.');
-        }
-    }
-    try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
-
-    // ─────────────────────────────────────
-    // STEP 5: 아이디/비밀번호 입력 (최대 8회 재시도)
-    // ─────────────────────────────────────
-    log('👉 STEP 5: 아이디/비밀번호 입력 시작...');
+    // ============================================================
+    // 자동 클릭/입력 로직 모두 제거 (사용자 요청: 완전 수동 모드)
+    // ============================================================
+    log('🛑 [수동 모드 진입] 봇이 더 이상 아무것도 클릭하지 않습니다.');
+    log('👉 실시간 CCTV 접속하셔서 직접 로그인해 주세요!');
+    
     let loginSuccess = false;
-
-    for (let attempt = 0; attempt < 8; attempt++) {
-        // 수동 모드 처리
-        if (global.manualMode) {
-            log('🛑 수동 조작 모드. 사용자가 로그인할 때까지 대기...');
-            const modalOpen = await page.evaluate(() => !!document.querySelector('input[type="password"]'));
-            if (!modalOpen) { loginSuccess = true; break; }
-            await delay(2000); attempt--; continue;
+    // 30분(1800초) 동안 대기하며 로그인 쿠키가 주입되는지 감시
+    for (let attempt = 0; attempt < 360; attempt++) {
+        // 인터셉터가 auth_token을 따오면 cookies.json이 생김
+        const cookies = await page.cookies();
+        const hasToken = cookies.some(c => c.name === 'auth_token');
+        if (hasToken) {
+            log('🎉 [수동 로그인 감지] 사용자가 직접 로그인을 완료했습니다!');
+            loginSuccess = true;
+            break;
         }
-
-        log(`  시도 ${attempt + 1}/8: 아이디 입력...`);
-        const idOk = await typeIntoInput([
-            'input[name="id"]', 
-            'input[name="userId"]',
-            'input[name="loginId"]',
-            'input[placeholder*="아이디"]', 
-            'input[placeholder*="이메일"]',
-            'input[type="email"]'
-        ], BUBEE_ID, '아이디');
-
-        log(`  시도 ${attempt + 1}/8: 비밀번호 입력...`);
-        const pwOk = await typeIntoInput([
-            'input[type="password"]',
-            'input[name="password"]',
-            'input[name="pw"]',
-            'input[placeholder*="비밀번호"]'
-        ], BUBEE_PW, '비밀번호');
-
-        if (idOk && pwOk) {
-            await delay(300);
-            
-            // 로그인 버튼 클릭 (헤더 제외, 모달 안)
-            const submitClicked = await page.evaluate(() => {
-                const btns = Array.from(document.querySelectorAll('button, input[type="submit"]'));
-                const loginBtn = btns.find(b => {
-                    if (!b.innerText && b.value !== '로그인') return false;
-                    const txt = (b.innerText || b.value || '').trim();
-                    return txt === '로그인' && b.offsetHeight > 0 && b.closest('.modal, form, [class*="login"], [class*="Login"]');
-                }) || btns.find(b => {
-                    const txt = (b.innerText || b.value || '').trim();
-                    return (txt === '로그인' || txt === '시작하기' || txt === '확인') && b.offsetHeight > 0 && b.closest('header') === null;
-                });
-                if (loginBtn) {
-                    loginBtn.removeAttribute('disabled');
-                    loginBtn.click();
-                    return true;
-                }
-                return false;
-            });
-            
-            if (!submitClicked) {
-                // 버튼을 못 찾으면 Enter로 제출
-                log('  버튼 못 찾음. Enter 키로 제출...');
-                await page.keyboard.press('Enter');
-            }
-
-            await delay(4000);
-            try { await page.screenshot({ path: path.join(publicDir, 'debug4.png') }); } catch(e){}
-
-            // 로그인 성공 여부 확인: 비밀번호 창이 사라졌으면 성공
-            const stillHasPasswordInput = await page.evaluate(() => {
-                const pw = document.querySelector('input[type="password"]');
-                return pw && pw.offsetWidth > 0;
-            });
-
-            if (!stillHasPasswordInput) {
-                loginSuccess = true;
-                log('✅ 로그인 성공!');
-                break;
-            } else {
-                log(`  ⚠️ 아직 로그인 창이 열려있음. 재시도...`);
-            }
-        } else {
-            log(`  ⚠️ 입력 폼을 찾지 못함. 재시도...`);
+        if (attempt % 10 === 0) {
+            log(`⏳ 사용자의 직접 로그인을 기다리는 중... (CCTV에서 로그인 해주세요)`);
         }
-        await delay(1500);
+        await delay(5000); // 5초마다 체크
     }
+
 
     if (!loginSuccess) {
         log('❌ [치명적] 자동 로그인 실패. debug*.png 파일을 확인하세요.');
@@ -1045,53 +871,30 @@ async function main() {
             if (!loginBtnVisible) {
                 log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
             } else {
-                log(`⚠️ [쿠키 만료] 저장된 쿠키가 만료되었습니다. API 로그인 시도...`);
-                // 1차: API 직접 로그인
-                const apiResult = await apiLogin();
-                if (apiResult.success) {
-                    const newCookie = [{ name: 'auth_token', value: encodeURIComponent(apiResult.token), domain: 'bubeelive.com', path: '/' }];
-                    await global.bgPage.setCookie(...newCookie.map(c => ({ ...c, url: CONFIG.siteBase })));
-                    fs.writeFileSync(cookiePath, JSON.stringify(newCookie, null, 2));
-                    log('✅ [API 로그인] 토큰 발급 및 저장 완료!');
-                } else {
-                    // 2차 fallback: UI 로그인
-                    log('⚠️ API 로그인 실패. UI 로그인으로 전환...');
-                    const loginOk = await doLogin(global.bgPage);
-                    if (loginOk) {
-                        const newCookies = await global.bgPage.cookies();
-                        if (newCookies.find(c => c.name === 'auth_token')) {
-                            fs.writeFileSync(cookiePath, JSON.stringify(newCookies, null, 2));
-                            log('✅ [UI 로그인] 성공, 새 쿠키를 저장했습니다!');
-                        }
-                    } else {
-                        log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
-                    }
-                }
-            }
-        } else {
-            log(`⚠️ [쿠키 없음] 저장된 쿠키가 없습니다. API 로그인 시도...`);
-            // 1차: API 직접 로그인
-            const apiResult2 = await apiLogin();
-            if (apiResult2.success) {
-                const newCookie2 = [{ name: 'auth_token', value: encodeURIComponent(apiResult2.token), domain: 'bubeelive.com', path: '/' }];
-                await global.bgPage.setCookie(...newCookie2.map(c => ({ ...c, url: CONFIG.siteBase })));
-                await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
-                fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookie2, null, 2));
-                log('✅ [API 로그인] 토큰 발급 및 저장 완료!');
-            } else {
-                // 2차 fallback: UI 로그인
-                log('⚠️ API 로그인 실패. UI 로그인으로 전환...');
-                await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+                log(`⚠️ [쿠키 만료] 저장된 쿠키가 만료되었습니다. 완전 수동 로그인 대기 모드로 진입합니다...`);
                 const loginOk = await doLogin(global.bgPage);
                 if (loginOk) {
                     const newCookies = await global.bgPage.cookies();
                     if (newCookies.find(c => c.name === 'auth_token')) {
-                        fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
-                        log('✅ [UI 로그인] 성공, 쿠키를 저장했습니다!');
+                        fs.writeFileSync(cookiePath, JSON.stringify(newCookies, null, 2));
+                        log('✅ [수동 로그인 성공] 새 쿠키를 저장했습니다!');
                     }
                 } else {
-                    log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
+                    log('❌ [수동 로그인 실패] CCTV에서 직접 로그인해주세요.');
                 }
+            }
+        } else {
+            log(`⚠️ [쿠키 없음] 저장된 쿠키가 없습니다. 완전 수동 로그인 대기 모드로 진입합니다...`);
+            await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+            const loginOk = await doLogin(global.bgPage);
+            if (loginOk) {
+                const newCookies = await global.bgPage.cookies();
+                if (newCookies.find(c => c.name === 'auth_token')) {
+                    fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
+                    log('✅ [수동 로그인 성공] 쿠키를 저장했습니다!');
+                }
+            } else {
+                log('❌ [수동 로그인 실패] CCTV에서 직접 로그인해주세요.');
             }
         }
         
