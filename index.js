@@ -632,22 +632,29 @@ async function doLogin(page) {
     // 확실한 네이티브 마우스 클릭으로 로그인 버튼(헤더) 누르기
     try {
         log('👉 로그인 버튼 찾는 중...');
-        const clicked = await page.evaluate(async () => {
-            const delay = ms => new Promise(res => setTimeout(res, ms));
-            for(let i=0; i<10; i++) {
-                let btn = document.querySelector('.btn-login') || document.querySelector('a[href*="login"]');
-                if (!btn) {
-                    const els = Array.from(document.querySelectorAll('button, a, div, span'));
-                    btn = els.find(e => e.innerText && e.innerText.trim() === '로그인' && e.offsetHeight > 0);
-                }
-                if (btn) {
-                    btn.click();
-                    return true;
-                }
-                await delay(1000);
+        let clicked = false;
+        for (let i = 0; i < 15; i++) {
+            const btnLogin = await page.$('.btn-login');
+            if (btnLogin && await btnLogin.evaluate(e => e.offsetWidth > 0)) {
+                await btnLogin.click();
+                clicked = true;
+                break;
             }
-            return false;
-        });
+            
+            const els = await page.$$('button, a, div, span');
+            for (const el of els) {
+                const text = await el.evaluate(e => e.innerText ? e.innerText.trim() : '');
+                const visible = await el.evaluate(e => e.offsetWidth > 0);
+                if (text === '로그인' && visible) {
+                    await el.click();
+                    clicked = true;
+                    break;
+                }
+            }
+            if (clicked) break;
+            await delay(1000);
+        }
+        
         if (clicked) log('👉 메인 로그인 버튼 클릭 완료');
         else log('⚠️ 로그인 버튼을 찾을 수 없습니다.');
     } catch(e) {
