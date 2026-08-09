@@ -810,13 +810,14 @@ async function doLogin(page) {
         const maskedId = BUBEE_ID.substring(0, 2) + '***'; 
         const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4), maskedId];
         for (let i = 0; i < 10; i++) {
-
             const coord = await page.evaluate((kws) => {
-                const all = Array.from(document.querySelectorAll('button, a, li, span, div, p'));
+                // querySelectorAll은 부모부터 반환하므로 reverse()하여 가장 안쪽(자식) 요소부터 탐색
+                const all = Array.from(document.querySelectorAll('button, a, li, span, div, p')).reverse();
                 for (const kw of kws) {
                     const el = all.find(e => {
                         if (!e.offsetWidth || !e.offsetHeight) return false;
                         const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
+                        // 텍스트를 포함하면서, 화면에 보이는 엘리먼트 중 가장 안쪽 엘리먼트 선택
                         return txt.includes(kw.replace(/\s+/g, ''));
                     });
                     if (el) {
@@ -830,7 +831,7 @@ async function doLogin(page) {
                 await page.mouse.move(coord.x, coord.y);
                 await delay(150);
                 await page.mouse.click(coord.x, coord.y);
-                log(`✅ "${coord.found}" 클릭 완료`);
+                log(`✅ "${coord.found}" 클릭 완료 (좌표: ${Math.round(coord.x)}, ${Math.round(coord.y)})`);
                 return true;
             }
             await delay(500);
