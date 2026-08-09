@@ -810,7 +810,7 @@ async function doLogin(page) {
         const maskedId = BUBEE_ID.substring(0, 2) + '***'; 
         const keywords = ['아이디로 시작하기', '아이디로시작하기', '아이디 로그인', BUBEE_ID, BUBEE_ID.substring(0, 4), maskedId];
         for (let i = 0; i < 10; i++) {
-            const coord = await page.evaluate((kws) => {
+            const clickedFound = await page.evaluate((kws) => {
                 // querySelectorAll은 부모부터 반환하므로 reverse()하여 가장 안쪽(자식) 요소부터 탐색
                 const all = Array.from(document.querySelectorAll('button, a, li, span, div, p')).reverse();
                 for (const kw of kws) {
@@ -821,17 +821,16 @@ async function doLogin(page) {
                         return txt.includes(kw.replace(/\s+/g, ''));
                     });
                     if (el) {
-                        const r = el.getBoundingClientRect();
-                        return { x: r.left + r.width/2, y: r.top + r.height/2, found: kw };
+                        // 투명 오버레이를 무시하고 DOM에서 강제로 바로 클릭해버립니다.
+                        el.click();
+                        return kw;
                     }
                 }
                 return null;
             }, keywords);
-            if (coord) {
-                await page.mouse.move(coord.x, coord.y);
-                await delay(150);
-                await page.mouse.click(coord.x, coord.y);
-                log(`✅ "${coord.found}" 클릭 완료 (좌표: ${Math.round(coord.x)}, ${Math.round(coord.y)})`);
+            
+            if (clickedFound) {
+                log(`✅ "${clickedFound}" 직접 강제 클릭 완료!`);
                 return true;
             }
             await delay(500);
