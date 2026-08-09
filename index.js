@@ -707,7 +707,7 @@ async function doLogin(page) {
         }
         
         let pwTyped = false;
-        const pwInputs = await page.$$('input[type="password"]');
+        const pwInputs = await page.$$('input[type="password"], input[placeholder*="비밀번호"]');
         for (const el of pwInputs) {
             if (await el.evaluate(e => e.offsetWidth > 0)) {
                 await el.click({ clickCount: 3 });
