@@ -702,10 +702,13 @@ async function doLogin(page) {
     // ─────────────────────────────────────
     // STEP 2: 이미 로그인 되어있는지 확인
     // ─────────────────────────────────────
+    // 로그인 상태 확인: 로그아웃 버튼이나 프로필 요소가 있으면 이미 로그인된 것
     const alreadyLoggedIn = await page.evaluate(() => {
-        return !document.querySelector('.btn-login') && 
-               !document.querySelector('[href*="login"]') &&
-               !Array.from(document.querySelectorAll('button, a, span')).some(e => e.innerText && e.innerText.trim() === '로그인');
+        const logoutBtn = document.querySelector('.btn-logout, [href*="logout"], .user-profile, .my-page, .header-user');
+        const loginBtn = Array.from(document.querySelectorAll('button, a, span, div'))
+            .find(e => e.offsetWidth > 0 && e.innerText && e.innerText.trim() === '로그인');
+        // 로그아웃 버튼이 있고, 로그인 버튼이 없으면 이미 로그인된 것
+        return !!logoutBtn && !loginBtn;
     });
     if (alreadyLoggedIn) {
         log('✅ 이미 로그인 상태 확인. 로그인 과정 스킵.');
@@ -713,10 +716,10 @@ async function doLogin(page) {
     }
 
     // ─────────────────────────────────────
-    // STEP 3: 헤더 "로그인" 버튼 클릭
+    // STEP 3: 헤더 "로그인" 버튼 클릭 (exact 없이, 포함 검색)
     // ─────────────────────────────────────
     log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
-    const headerClicked = await clickByText(['로그인'], { timeout: 15000, exact: true });
+    const headerClicked = await clickByText(['로그인'], { timeout: 15000, exact: false });
     if (!headerClicked) {
         log('⚠️ 헤더 로그인 버튼 못 찾음. 계속 진행...');
     }
