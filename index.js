@@ -883,21 +883,52 @@ async function main() {
             rawCookies = JSON.parse(fs.readFileSync(defaultCookiePath, 'utf8'));
         }
         
+        // 메인 백그라운드 탭 생성
+        global.bgPage = await global.browser.newPage();
+        await global.bgPage.setViewport({ width: 1280, height: 720 });
+
         if (rawCookies.length > 0) {
             let cookies = rawCookies.map(c => ({ ...c, url: CONFIG.siteBase }));
-            
-            // 메인 백그라운드 탭 생성 (자동 갱신용)
-            global.bgPage = await global.browser.newPage();
-            await global.bgPage.setViewport({ width: 1280, height: 720 });
             await global.bgPage.setCookie(...cookies);
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
-            log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
+            
+            // ✅ 쿠키 주입 후 실제로 로그인됐는지 확인
+            const loginBtnVisible = await global.bgPage.evaluate(() => {
+                return Array.from(document.querySelectorAll('button, a, span, div'))
+                    .some(e => e.offsetWidth > 0 && e.offsetHeight > 0 
+                        && e.children.length === 0 
+                        && e.innerText && e.innerText.trim() === '로그인');
+            });
+
+            if (!loginBtnVisible) {
+                log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
+            } else {
+                log(`⚠️ [쿠키 만료] 저장된 쿠키가 만료되었습니다. 자동 로그인 시도...`);
+                const loginOk = await doLogin(global.bgPage);
+                if (loginOk) {
+                    // 새 쿠키 저장
+                    const newCookies = await global.bgPage.cookies();
+                    if (newCookies.find(c => c.name === 'auth_token')) {
+                        fs.writeFileSync(cookiePath, JSON.stringify(newCookies, null, 2));
+                        log('✅ [새 쿠키 저장] 로그인 성공, 새 쿠키를 저장했습니다!');
+                    }
+                } else {
+                    log('❌ [로그인 실패] 자동 로그인에 실패했습니다. CCTV에서 직접 로그인해주세요.');
+                }
+            }
         } else {
-            log(`⚠️ [쿠키 누락] cookies.json 파일이 없습니다! (비로그인 상태로 진입합니다)`);
-            global.bgPage = await global.browser.newPage();
-            await global.bgPage.setViewport({ width: 1280, height: 720 });
+            log(`⚠️ [쿠키 없음] 저장된 쿠키가 없습니다. 자동 로그인 시도...`);
             await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
-            log(`✅ 백그라운드 무한 연장 엔진 가동! (현재 비로그인 상태. CCTV에서 로그인 시 자동 백업됨)`);
+            const loginOk = await doLogin(global.bgPage);
+            if (loginOk) {
+                const newCookies = await global.bgPage.cookies();
+                if (newCookies.find(c => c.name === 'auth_token')) {
+                    fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
+                    log('✅ [새 쿠키 저장] 로그인 성공, 쿠키를 저장했습니다!');
+                }
+            } else {
+                log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
+            }
         }
         
         // 10분마다 새로고침하여 부비라이브 자체 로직이 토큰을 자동 연장하도록 유도
@@ -911,12 +942,19 @@ async function main() {
                         fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(currentCookies, null, 2));
                         log('🔄 [토큰 생명 연장] 백그라운드 탭 새로고침 및 최신 쿠키 백업 완료');
                     } else {
-                        log('⚠️ [토큰 백업 실패] 백그라운드 탭 로그아웃 감지! 볼륨 덮어쓰기를 방지합니다.');
+                        log('⚠️ [토큰 백업 실패] 백그라운드 탭 로그아웃 감지! 자동 재로그인 시도...');
+                        await doLogin(global.bgPage);
+                        const newCookies = await global.bgPage.cookies();
+                        if (newCookies.find(c => c.name === 'auth_token')) {
+                            fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
+                            log('✅ [재로그인 성공] 쿠키 갱신 완료!');
+                        }
                     }
                 }
             } catch(e) { log('⚠️ 백그라운드 탭 새로고침 지연: ' + e.message); }
         }, 10 * 60 * 1000);
     } catch(e) { log(`❌ [쿠키 에러] ${e.message}`); }
+
 
     const activeRooms = new Map();
     global.activeRooms = activeRooms;
