@@ -746,8 +746,26 @@ async function doLogin(page) {
     // STEP 4: "아이디로 시작하기" 클릭 (있는 경우)
     log('👉 STEP 4: 아이디로 시작하기 버튼 탐색...');
     const idStartClicked = await clickByText(['아이디로 시작하기', '아이디 로그인', '이메일로 로그인'], { timeout: 5000 });
-    if (idStartClicked) await delay(1500);
+    if (idStartClicked) {
+        log('✅ STEP 4: 아이디로 시작하기 클릭 완료');
+        await delay(1500);
+    } else {
+        log('ℹ️ STEP 4: 아이디로 시작하기 버튼 없음 (이미 폼이 열린 상태)');
+    }
     try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
+
+    // 로그인 폼(아이디/비밀번호 입력란)이 실제로 보이는지 확인
+    const formVisible = await page.evaluate(() => {
+        const idInput = document.querySelector('input[name="id"], input[name="userId"], input[name="loginId"], input[placeholder*="아이디"]');
+        return !!(idInput && idInput.offsetWidth > 0);
+    });
+    if (!formVisible) {
+        log('⚠️ 로그인 폼이 안 보입니다. 헤더 로그인 버튼을 다시 클릭합니다...');
+        await clickLoginHeaderBtn();
+        await delay(2000);
+        const idStartClicked2 = await clickByText(['아이디로 시작하기', '아이디 로그인', '이메일로 로그인'], { timeout: 5000 });
+        if (idStartClicked2) await delay(1500);
+    }
 
 
     // ─────────────────────────────────────
@@ -769,7 +787,7 @@ async function doLogin(page) {
         const idOk = await typeIntoInput([
             'input[name="id"]', 
             'input[name="userId"]',
-            'input[type="text"]',
+            'input[name="loginId"]',
             'input[placeholder*="아이디"]', 
             'input[placeholder*="이메일"]',
             'input[type="email"]'
