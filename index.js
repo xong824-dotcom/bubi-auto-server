@@ -699,40 +699,56 @@ async function doLogin(page) {
     try { await page.screenshot({ path: path.join(publicDir, 'debug1.png') }); } catch(e){}
     log('📸 debug1.png 저장 완료');
 
-    // ─────────────────────────────────────
-    // STEP 2: 이미 로그인 되어있는지 확인
-    // ─────────────────────────────────────
-    // 로그인 상태 확인: 로그아웃 버튼이나 프로필 요소가 있으면 이미 로그인된 것
+    // STEP 2: 이미 로그인 되어있는지 확인 (로그인 버튼이 없으면 이미 로그인)
     const alreadyLoggedIn = await page.evaluate(() => {
-        const logoutBtn = document.querySelector('.btn-logout, [href*="logout"], .user-profile, .my-page, .header-user');
-        const loginBtn = Array.from(document.querySelectorAll('button, a, span, div'))
-            .find(e => e.offsetWidth > 0 && e.innerText && e.innerText.trim() === '로그인');
-        // 로그아웃 버튼이 있고, 로그인 버튼이 없으면 이미 로그인된 것
-        return !!logoutBtn && !loginBtn;
+        return !Array.from(document.querySelectorAll('button, a, span, div'))
+            .some(e => e.offsetWidth > 0 && e.offsetHeight > 0 
+                && e.children.length === 0 
+                && e.innerText && e.innerText.trim() === '로그인');
     });
     if (alreadyLoggedIn) {
-        log('✅ 이미 로그인 상태 확인. 로그인 과정 스킵.');
+        log('✅ 이미 로그인 상태. 스킵.');
         return true;
     }
 
-    // ─────────────────────────────────────
-    // STEP 3: 헤더 "로그인" 버튼 클릭 (exact 없이, 포함 검색)
-    // ─────────────────────────────────────
+    // STEP 3: 헤더 로그인 버튼 클릭
+    // 핵심: children이 없는 리프 텍스트 노드만 찾아야 실제 버튼을 클릭 (부모 컨테이너 방지)
     log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
-    const headerClicked = await clickByText(['로그인'], { timeout: 15000, exact: false });
-    if (!headerClicked) {
-        log('⚠️ 헤더 로그인 버튼 못 찾음. 계속 진행...');
+    let headerClicked = false;
+    for (let i = 0; i < 20; i++) {
+        const coord = await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('button, a, li, span, div'));
+            const el = all.find(e => {
+                if (!e.offsetWidth || !e.offsetHeight) return false;
+                // 자식 요소가 없는 리프 노드이거나, 자식이 아이콘 img/svg만 있는 경우만 허용
+                const nonIconChildren = Array.from(e.children).filter(c => c.tagName !== 'IMG' && c.tagName !== 'SVG' && c.tagName !== 'I');
+                const txt = e.innerText ? e.innerText.replace(/\s+/g, '').trim() : '';
+                return txt === '로그인' && nonIconChildren.length === 0;
+            });
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.left + r.width/2, y: r.top + r.height/2 };
+        });
+        if (coord) {
+            await page.mouse.move(coord.x, coord.y);
+            await delay(150);
+            await page.mouse.click(coord.x, coord.y);
+            log(`✅ 로그인 버튼 클릭 완료 (${Math.round(coord.x)}, ${Math.round(coord.y)})`);
+            headerClicked = true;
+            break;
+        }
+        await delay(700);
     }
+    if (!headerClicked) log('⚠️ 로그인 버튼 못 찾음. 다음 단계 진행...');
     await delay(2000);
     try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
 
-    // ─────────────────────────────────────
     // STEP 4: "아이디로 시작하기" 클릭 (있는 경우)
-    // ─────────────────────────────────────
     log('👉 STEP 4: 아이디로 시작하기 버튼 탐색...');
     const idStartClicked = await clickByText(['아이디로 시작하기', '아이디 로그인', '이메일로 로그인'], { timeout: 5000 });
     if (idStartClicked) await delay(1500);
     try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
+
 
     // ─────────────────────────────────────
     // STEP 5: 아이디/비밀번호 입력 (최대 8회 재시도)
