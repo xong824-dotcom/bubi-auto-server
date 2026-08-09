@@ -772,32 +772,56 @@ async function doLogin(page) {
     log('👉 STEP 3: 헤더 로그인 버튼 클릭...');
     const headerClicked = await clickLoginHeaderBtn();
     if (!headerClicked) log('⚠️ 로그인 버튼 못 찾음. 다음 단계 진행...');
-    await delay(2000);
+
+    // 모달이 뜰 때까지 최대 10초 대기 (modal container 또는 소셜 로그인 버튼 감지)
+    log('⏳ 로그인 모달 대기 중...');
+    let modalDetected = false;
+    for (let i = 0; i < 20; i++) {
+        const detected = await page.evaluate(() => {
+            // 모달 안에 소셜 로그인 버튼이나 아이디 입력창이 보이면 OK
+            const hasIdInput = !!document.querySelector('input[name="id"], input[name="userId"], input[placeholder*="아이디"]');
+            const hasSocialBtn = Array.from(document.querySelectorAll('button, a, li, div, span'))
+                .some(e => e.offsetWidth > 0 && e.innerText && (
+                    e.innerText.includes('아이디로 시작하기') ||
+                    e.innerText.includes('카카오') ||
+                    e.innerText.includes('구글') ||
+                    e.innerText.includes('Google') ||
+                    e.innerText.includes('Kakao')
+                ));
+            return hasIdInput || hasSocialBtn;
+        });
+        if (detected) { modalDetected = true; break; }
+        await delay(500);
+    }
     try { await page.screenshot({ path: path.join(publicDir, 'debug2.png') }); } catch(e){}
 
-    // STEP 4: 최근 로그인 계정 or 아이디로 시작하기 클릭
-    log('👉 STEP 4: 로그인 방식 선택...');
-    const idStartClicked = await clickIdLoginBtn();
-    if (idStartClicked) {
-        log('✅ STEP 4: 로그인 방식 선택 완료');
-        await delay(1500);
+    if (!modalDetected) {
+        log('⚠️ 모달 감지 실패. 그냥 계속 진행...');
     } else {
-        log('ℹ️ STEP 4: 선택 버튼 없음 (이미 폼이 열린 상태)');
+        log('✅ 로그인 모달 감지 완료!');
+    }
+
+    // STEP 4: 모달 안에서 아이디 로그인 경로 선택
+    // 이미 ID/PW 폼이 열려있으면 스킵, 아니면 소셜 선택화면에서 "아이디로 시작하기" 클릭
+    log('👉 STEP 4: 로그인 방식 선택...');
+    const alreadyHasIdForm = await page.evaluate(() => {
+        const el = document.querySelector('input[name="id"], input[name="userId"], input[placeholder*="아이디"]');
+        return !!(el && el.offsetWidth > 0);
+    });
+
+    if (alreadyHasIdForm) {
+        log('✅ STEP 4: 이미 아이디 입력 폼이 열려있음. 스킵.');
+    } else {
+        // 소셜 선택 화면 → "아이디로 시작하기" 클릭
+        const found = await clickIdLoginBtn();
+        if (found) {
+            log('✅ STEP 4: 로그인 방식 선택 완료. 폼 대기...');
+            await delay(2000);
+        } else {
+            log('⚠️ STEP 4: 버튼 못 찾음.');
+        }
     }
     try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
-
-    // 로그인 폼 실제 존재 여부 확인
-    const formVisible = await page.evaluate(() => {
-        const idInput = document.querySelector('input[name="id"], input[name="userId"], input[name="loginId"], input[placeholder*="아이디"]');
-        return !!(idInput && idInput.offsetWidth > 0);
-    });
-    if (!formVisible) {
-        log('⚠️ 로그인 폼이 안 보입니다. 처음부터 다시 시도...');
-        await clickLoginHeaderBtn();
-        await delay(2000);
-        await clickIdLoginBtn();
-        await delay(1500);
-    }
 
     // ─────────────────────────────────────
     // STEP 5: 아이디/비밀번호 입력 (최대 8회 재시도)
