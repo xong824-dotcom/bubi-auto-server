@@ -592,6 +592,57 @@ function fetchLiveList() {
 }
 
 // ============================================================
+// API 직접 로그인 (UI 없이 auth_token 발급)
+// ============================================================
+function apiLogin() {
+    return new Promise((resolve) => {
+        const postData = JSON.stringify({ user_id: BUBEE_ID, user_pw: BUBEE_PW });
+        const options = {
+            hostname: 'api.bubeelive.com',
+            path: '/v2/sites/2/user/sign-in',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData),
+                'x-user-agent': 'kpoplive_app/DESKTOP/PG/1.0.0/kr/ko/N/10',
+                'Accept': 'application/json',
+                'Origin': CONFIG.siteBase,
+                'Referer': CONFIG.siteBase + '/'
+            }
+        };
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(data);
+                    log(`🔐 [API 로그인] 응답: ${JSON.stringify(json).substring(0, 200)}`);
+                    // auth_token 또는 token 필드 탐색
+                    const token = json.auth_token || json.token || json.data?.auth_token || json.data?.token || json.result?.auth_token;
+                    if (token) {
+                        log(`✅ [API 로그인] auth_token 발급 성공!`);
+                        resolve({ success: true, token });
+                    } else {
+                        log(`⚠️ [API 로그인] 응답에 토큰 없음. 전체 응답: ${JSON.stringify(json).substring(0, 500)}`);
+                        resolve({ success: false });
+                    }
+                } catch(e) {
+                    log(`❌ [API 로그인] 응답 파싱 실패: ${e.message}`);
+                    resolve({ success: false });
+                }
+            });
+        });
+        req.on('error', (e) => {
+            log(`❌ [API 로그인] 요청 실패: ${e.message}`);
+            resolve({ success: false });
+        });
+        req.setTimeout(10000, () => { req.destroy(); resolve({ success: false }); });
+        req.write(postData);
+        req.end();
+    });
+}
+
+// ============================================================
 // 강력한 로그인 로직
 // ============================================================
 async function doLogin(page) {
@@ -976,31 +1027,53 @@ async function main() {
             if (!loginBtnVisible) {
                 log(`✅ [쿠키 프리패스] 입장권(Cookie) 장착 완료! 백그라운드 무한 연장 엔진 가동!`);
             } else {
-                log(`⚠️ [쿠키 만료] 저장된 쿠키가 만료되었습니다. 자동 로그인 시도...`);
-                const loginOk = await doLogin(global.bgPage);
-                if (loginOk) {
-                    // 새 쿠키 저장
-                    const newCookies = await global.bgPage.cookies();
-                    if (newCookies.find(c => c.name === 'auth_token')) {
-                        fs.writeFileSync(cookiePath, JSON.stringify(newCookies, null, 2));
-                        log('✅ [새 쿠키 저장] 로그인 성공, 새 쿠키를 저장했습니다!');
-                    }
+                log(`⚠️ [쿠키 만료] 저장된 쿠키가 만료되었습니다. API 로그인 시도...`);
+                // 1차: API 직접 로그인
+                const apiResult = await apiLogin();
+                if (apiResult.success) {
+                    const newCookie = [{ name: 'auth_token', value: encodeURIComponent(apiResult.token), domain: 'bubeelive.com', path: '/' }];
+                    await global.bgPage.setCookie(...newCookie.map(c => ({ ...c, url: CONFIG.siteBase })));
+                    fs.writeFileSync(cookiePath, JSON.stringify(newCookie, null, 2));
+                    log('✅ [API 로그인] 토큰 발급 및 저장 완료!');
                 } else {
-                    log('❌ [로그인 실패] 자동 로그인에 실패했습니다. CCTV에서 직접 로그인해주세요.');
+                    // 2차 fallback: UI 로그인
+                    log('⚠️ API 로그인 실패. UI 로그인으로 전환...');
+                    const loginOk = await doLogin(global.bgPage);
+                    if (loginOk) {
+                        const newCookies = await global.bgPage.cookies();
+                        if (newCookies.find(c => c.name === 'auth_token')) {
+                            fs.writeFileSync(cookiePath, JSON.stringify(newCookies, null, 2));
+                            log('✅ [UI 로그인] 성공, 새 쿠키를 저장했습니다!');
+                        }
+                    } else {
+                        log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
+                    }
                 }
             }
         } else {
-            log(`⚠️ [쿠키 없음] 저장된 쿠키가 없습니다. 자동 로그인 시도...`);
-            await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
-            const loginOk = await doLogin(global.bgPage);
-            if (loginOk) {
-                const newCookies = await global.bgPage.cookies();
-                if (newCookies.find(c => c.name === 'auth_token')) {
-                    fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
-                    log('✅ [새 쿠키 저장] 로그인 성공, 쿠키를 저장했습니다!');
-                }
+            log(`⚠️ [쿠키 없음] 저장된 쿠키가 없습니다. API 로그인 시도...`);
+            // 1차: API 직접 로그인
+            const apiResult2 = await apiLogin();
+            if (apiResult2.success) {
+                const newCookie2 = [{ name: 'auth_token', value: encodeURIComponent(apiResult2.token), domain: 'bubeelive.com', path: '/' }];
+                await global.bgPage.setCookie(...newCookie2.map(c => ({ ...c, url: CONFIG.siteBase })));
+                await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+                fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookie2, null, 2));
+                log('✅ [API 로그인] 토큰 발급 및 저장 완료!');
             } else {
-                log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
+                // 2차 fallback: UI 로그인
+                log('⚠️ API 로그인 실패. UI 로그인으로 전환...');
+                await global.bgPage.goto(CONFIG.siteBase, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+                const loginOk = await doLogin(global.bgPage);
+                if (loginOk) {
+                    const newCookies = await global.bgPage.cookies();
+                    if (newCookies.find(c => c.name === 'auth_token')) {
+                        fs.writeFileSync(path.join(DATA_DIR, 'cookies.json'), JSON.stringify(newCookies, null, 2));
+                        log('✅ [UI 로그인] 성공, 쿠키를 저장했습니다!');
+                    }
+                } else {
+                    log('❌ [로그인 실패] 자동 로그인에 실패했습니다.');
+                }
             }
         }
         
