@@ -18,8 +18,8 @@ const { BUBEE_ID, BUBEE_PW, TARGET_VOD_KEYS, TARGET_USER_KEYS, CHECK_INTERVAL_SE
 
 const CONFIG = {
     checkIntervalMs: (parseInt(CHECK_INTERVAL_SEC) || 30) * 1000,
-    apiBase: 'https://api.bubeelive.com/v2/sites/2',
-    siteBase: 'https://www.bubeelive.com',
+    apiBase: 'https://api.ggullive.com/v2/sites/2',
+    siteBase: 'https://www.ggullive.com',
     port: PORT || 8080,
     configPath: CONFIG_FILE
 };
@@ -609,7 +609,7 @@ function apiLogin() {
     return new Promise((resolve) => {
         const postData = JSON.stringify({ user_id: BUBEE_ID, user_pw: BUBEE_PW });
         const options = {
-            hostname: 'api.bubeelive.com',
+            hostname: 'api.ggullive.com',
             path: '/v2/sites/2/user/sign-in',
             method: 'POST',
             headers: {
@@ -668,7 +668,7 @@ async function doLogin(page) {
     });
     page.on('request', request => {
         const url = request.url();
-        if (url.includes('bubeelive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
+        if (url.includes('ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 요청] ${request.method()} ${url}`);
             if (request.method() === 'POST') {
                 try { log(`[요청 바디] ${request.postData()?.substring(0, 200)}`); } catch(e) {}
@@ -677,7 +677,7 @@ async function doLogin(page) {
     });
     page.on('response', async response => {
         const url = response.url();
-        if (url.includes('bubeelive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
+        if (url.includes('ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 응답] ${response.status()} ${url}`);
             try {
                 const text = await response.text();

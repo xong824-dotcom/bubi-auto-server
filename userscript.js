@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.6
 // @description  부비라이브 방송 관리, 메모/미션 기능, 후원 집계 및 추첨 기능 탑재
-// @match        https://www.bubeelive.com/lives/play/*
+// @match        https://www.ggullive.com/lives/play/*
 // @grant        none
 // ==/UserScript==
 

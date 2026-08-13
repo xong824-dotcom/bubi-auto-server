@@ -16,7 +16,7 @@ const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application
     });
 
     const page = await browser.newPage();
-    await page.goto('https://www.bubeelive.com/', { waitUntil: 'domcontentloaded', timeout: 0 });
+    await page.goto('https://www.ggullive.com/', { waitUntil: 'domcontentloaded', timeout: 0 });
 
     console.log('⏳ 로그인을 완료하실 때까지 기다립니다...');
 
