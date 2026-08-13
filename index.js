@@ -464,6 +464,7 @@ h1{text-align:center;color:#ff4466;font-size:20px;margin-bottom:12px}
 function sendText(){var t=document.getElementById('kb').value;if(!t)return;fetch('/api/live/type',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});document.getElementById('kb').value='';}
 function sendKey(a){fetch('/api/live/type',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:a})});}
 function sendClick(e,k){var img=e.target,r=img.getBoundingClientRect();fetch('/api/live/click',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:e.clientX-r.left,y:e.clientY-r.top,width:img.clientWidth,height:img.clientHeight,roomKey:k})});}
+function sendScroll(e,k){e.preventDefault();fetch('/api/live/scroll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deltaY:e.deltaY,roomKey:k})});}
 function refresh(){
     fetch('/api/live/rooms').then(r=>r.json()).then(d=>{
         var g=document.getElementById('grid'), rooms=d.rooms||[];
@@ -475,7 +476,7 @@ function refresh(){
             var card = g.querySelector('[data-id="'+r.key+'"]');
             if(!card) {
                 card = document.createElement('div'); card.className = 'card' + (r.type==='bg'?' bg-card':''); card.dataset.id = r.key;
-                card.innerHTML = '<div class="ct"><span class="dot"></span>'+r.name+'</div><img onclick="sendClick(event,\\''+r.key+'\\')" onerror="this.style.opacity=.3"><div class="lbl">key:'+r.key+'</div>';
+                card.innerHTML = '<div class="ct"><span class="dot"></span>'+r.name+'</div><img onclick="sendClick(event,\\''+r.key+'\\')" onwheel="sendScroll(event,\\''+r.key+'\\')" onerror="this.style.opacity=.3"><div class="lbl">key:'+r.key+'</div>';
                 g.appendChild(card);
             }
             card.querySelector('img').src = '/live-image?room='+r.key+'&t='+Date.now();
@@ -507,6 +508,16 @@ refresh();setInterval(refresh,3000);
         else if (roomKey && global.activeRooms) page = global.activeRooms.get(roomKey) || global.activeRooms.get(Number(roomKey));
         if (!page || page.isClosed()) page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
         if (page && !page.isClosed()) { try { await page.mouse.click(x*(1280/width), y*(720/height)); } catch(e){} res.json({ success: true }); }
+        else res.status(404).json({ success: false });
+    });
+
+    app.post('/api/live/scroll', async (req, res) => {
+        const { deltaY, roomKey } = req.body;
+        let page = null;
+        if (roomKey === 'bg') page = global.bgPage;
+        else if (roomKey && global.activeRooms) page = global.activeRooms.get(roomKey) || global.activeRooms.get(Number(roomKey));
+        if (!page || page.isClosed()) page = global.livePage && !global.livePage.isClosed() ? global.livePage : global.bgPage;
+        if (page && !page.isClosed()) { try { await page.mouse.wheel({ deltaY: deltaY }); } catch(e){} res.json({ success: true }); }
         else res.status(404).json({ success: false });
     });
 
