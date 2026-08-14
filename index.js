@@ -871,7 +871,11 @@ async function main() {
         await global.bgPage.setViewport({ width: 1280, height: 720 });
 
         if (rawCookies.length > 0) {
-            let cookies = rawCookies.map(c => ({ ...c, url: CONFIG.siteBase }));
+            let cookies = rawCookies.map(c => {
+                let nc = { ...c, url: CONFIG.siteBase };
+                if (nc.domain) nc.domain = nc.domain.replace('bubeelive.com', 'ggullive.com');
+                return nc;
+            });
             await global.bgPage.setCookie(...cookies);
             
             // 프론트엔드(Vue/React)가 LocalStorage를 검사해서 튕겨내는 것을 방지
@@ -972,8 +976,12 @@ async function main() {
             const cookiePath = path.join(__dirname, 'cookies.json');
             if (fs.existsSync(cookiePath)) {
                 let cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8'));
-                // Puppeteer가 쿠키를 무시하지 않도록 url 명시
-                cookies = cookies.map(c => ({ ...c, url: CONFIG.siteBase }));
+                // Puppeteer가 쿠키를 무시하지 않도록 url 명시 (기존 도메인 쿠키도 새 도메인으로 변환)
+                cookies = cookies.map(c => {
+                    let nc = { ...c, url: CONFIG.siteBase };
+                    if (nc.domain) nc.domain = nc.domain.replace('bubeelive.com', 'ggullive.com');
+                    return nc;
+                });
                 await p.setCookie(...cookies);
                 
                 // 프론트엔드(Vue/React)가 LocalStorage를 검사해서 튕겨내는 것을 방지
