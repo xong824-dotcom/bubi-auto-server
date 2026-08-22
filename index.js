@@ -882,22 +882,13 @@ async function doLogin(page) {
     // STEP 4: 모달 안에서 아이디 로그인 경로 선택
     // 이미 ID/PW 폼이 열려있으면 스킵, 아니면 소셜 선택화면에서 "아이디로 시작하기" 클릭
     log('👉 STEP 4: 로그인 방식 선택...');
-    const alreadyHasIdForm = await page.evaluate(() => {
-        const el = document.querySelector('input[name="id"], input[name="userId"], input[placeholder*="아이디"]');
-        return !!(el && el.offsetWidth > 0);
-    });
-
-    if (alreadyHasIdForm) {
-        log('✅ STEP 4: 이미 아이디 입력 폼이 열려있음. 스킵.');
+    // 소셜 선택 화면 → "아이디로 시작하기" 또는 최근 계정("xo***") 무조건 클릭 시도
+    const found = await clickIdLoginBtn();
+    if (found) {
+        log('✅ STEP 4: 로그인 방식 선택 완료. 폼 대기...');
+        await delay(2000);
     } else {
-        // 소셜 선택 화면 → "아이디로 시작하기" 클릭
-        const found = await clickIdLoginBtn();
-        if (found) {
-            log('✅ STEP 4: 로그인 방식 선택 완료. 폼 대기...');
-            await delay(2000);
-        } else {
-            log('⚠️ STEP 4: 버튼 못 찾음.');
-        }
+        log('⚠️ STEP 4: 선택 버튼 없음 (이미 입력창이 열려있을 수 있음)');
     }
     try { await page.screenshot({ path: path.join(publicDir, 'debug3.png') }); } catch(e){}
 
