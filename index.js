@@ -742,19 +742,12 @@ async function doLogin(page) {
                     const visible = await el.evaluate(e => e.offsetWidth > 0 && e.offsetHeight > 0);
                     if (!visible) continue;
                     
-                    await el.click({ clickCount: 3 });
-                    await delay(100);
-                    await page.keyboard.down('Control');
-                    await page.keyboard.press('a');
-                    await page.keyboard.up('Control');
-                    await page.keyboard.press('Backspace');
-                    await delay(100);
-                    await el.type(value, { delay: 80 });
-                    
-                    await el.evaluate(e => {
+                    // 강제 값 주입 방식으로 변경 (포커스 뺏김 방지)
+                    await el.evaluate((e, val) => {
+                        e.value = val;
                         e.dispatchEvent(new Event('input', { bubbles: true }));
                         e.dispatchEvent(new Event('change', { bubbles: true }));
-                    });
+                    }, value);
                     
                     // 입력 후 실제 value 확인
                     const typed = await el.evaluate(e => e.value);
