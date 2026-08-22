@@ -751,6 +751,11 @@ async function doLogin(page) {
                     await delay(100);
                     await el.type(value, { delay: 80 });
                     
+                    await el.evaluate(e => {
+                        e.dispatchEvent(new Event('input', { bubbles: true }));
+                        e.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    
                     // 입력 후 실제 value 확인
                     const typed = await el.evaluate(e => e.value);
                     if (typed && typed.length > 0) {
