@@ -731,7 +731,7 @@ async function doLogin(page) {
         return false;
     }
 
-    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (Vue 호환 - 실제 키입력 방식)
+    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (Vue 호환 - 실제 클릭+키입력 방식)
     async function typeIntoInput(selectors, value, label) {
         const start = Date.now();
         while (Date.now() - start < 15000) {
@@ -739,25 +739,22 @@ async function doLogin(page) {
                 try {
                     const el = await page.$(sel);
                     if (!el) continue;
-                    const visible = await el.evaluate(e => e.offsetWidth > 0 && e.offsetHeight > 0);
-                    if (!visible) continue;
+                    const box = await el.boundingBox();
+                    if (!box || box.width === 0 || box.height === 0) continue;
 
-                    // 1. 기존 값 비우기
-                    await el.evaluate(e => { e.value = ''; });
-                    // 2. 포커스 주기
-                    await el.focus();
+                    // 1. 해당 칸 정중앙을 실제 마우스로 클릭 (포커스 100% 보장)
+                    const cx = box.x + box.width / 2;
+                    const cy = box.y + box.height / 2;
+                    await page.mouse.click(cx, cy, { clickCount: 3 }); // 3번 클릭으로 기존 값 전체 선택
                     await delay(150);
-                    // 3. Ctrl+A → Delete로 혹시 남은 값 제거
-                    await page.keyboard.down('Control');
-                    await page.keyboard.press('a');
-                    await page.keyboard.up('Control');
+
+                    // 2. 기존 선택된 값 삭제 후 새 값 타이핑
                     await page.keyboard.press('Delete');
-                    await delay(100);
-                    // 4. 실제 키보드 타이핑 (Vue 이벤트 흐름 그대로 따름)
+                    await delay(80);
                     await page.keyboard.type(value, { delay: 60 });
                     await delay(200);
 
-                    // 5. 확인
+                    // 3. 확인
                     const typed = await el.evaluate(e => e.value);
                     if (typed && typed.length > 0) {
                         log(`✅ ${label} 입력 완료 (${typed.length}자)`);
