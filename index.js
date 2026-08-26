@@ -668,7 +668,7 @@ async function doLogin(page) {
     });
     page.on('request', request => {
         const url = request.url();
-        if (url.includes('ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
+        if (url.includes('api.ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 요청] ${request.method()} ${url}`);
             if (request.method() === 'POST') {
                 try { log(`[요청 바디] ${request.postData()?.substring(0, 200)}`); } catch(e) {}
@@ -677,7 +677,7 @@ async function doLogin(page) {
     });
     page.on('response', async response => {
         const url = response.url();
-        if (url.includes('ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
+        if (url.includes('api.ggullive.com') && (url.includes('login') || url.includes('auth') || url.includes('sign') || url.includes('token') || url.includes('user'))) {
             log(`[네트워크 응답] ${response.status()} ${url}`);
             try {
                 const text = await response.text();
@@ -731,28 +731,35 @@ async function doLogin(page) {
         return false;
     }
 
-    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (3중 fallback)
+    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (Vue 호환 방식)
     async function typeIntoInput(selectors, value, label) {
         const start = Date.now();
-        while (Date.now() - start < 12000) {
+        while (Date.now() - start < 15000) {
             for (const sel of selectors) {
                 try {
                     const el = await page.$(sel);
                     if (!el) continue;
                     const visible = await el.evaluate(e => e.offsetWidth > 0 && e.offsetHeight > 0);
                     if (!visible) continue;
-                    
-                    // 강제 값 주입 방식으로 변경 (포커스 뺏김 방지)
-                    await el.evaluate((e, val) => {
-                        e.value = val;
-                        e.dispatchEvent(new Event('input', { bubbles: true }));
-                        e.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // Vue/React 호환: nativeInputValueSetter 트릭으로 강제 주입
+                    const ok = await el.evaluate((e, val) => {
+                        try {
+                            // React/Vue 내부 setter로 값 세팅 (가장 확실한 방법)
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                            nativeInputValueSetter.call(e, val);
+                            e.dispatchEvent(new Event('input', { bubbles: true }));
+                            e.dispatchEvent(new Event('change', { bubbles: true }));
+                            return e.value === val;
+                        } catch(err) {
+                            e.value = val;
+                            e.dispatchEvent(new Event('input', { bubbles: true }));
+                            return true;
+                        }
                     }, value);
-                    
-                    // 입력 후 실제 value 확인
-                    const typed = await el.evaluate(e => e.value);
-                    if (typed && typed.length > 0) {
-                        log(`✅ ${label} 입력 완료 (${typed.length}자)`);
+
+                    if (ok) {
+                        log(`✅ ${label} 입력 완료 (${value.length}자)`);
                         return true;
                     }
                 } catch(e) {}
@@ -914,7 +921,8 @@ async function doLogin(page) {
             'input[name="loginId"]',
             'input[placeholder*="아이디"]', 
             'input[placeholder*="이메일"]',
-            'input[type="email"]'
+            'input[type="email"]',
+            'input[type="text"]'
         ], BUBEE_ID, '아이디');
 
         log(`  시도 ${attempt + 1}/8: 비밀번호 입력...`);
