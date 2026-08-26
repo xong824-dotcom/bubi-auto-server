@@ -779,13 +779,40 @@ async function doLogin(page) {
             continue;
         }
 
-        log(`  시도 ${attempt+1}: 비밀번호 칸 클릭 (${Math.round(pwBox.x)}, ${Math.round(pwBox.y)})`);
-        await page.mouse.click(pwBox.x, pwBox.y, { clickCount: 3 });
-        await delay(150);
-        await page.keyboard.press('Delete');
+        log(`  시도 ${attempt+1}: 비밀번호 칸 DOM 포커스 후 타이핑`);
+        // DOM 레벨에서 직접 focus (오버레이 무시)
+        const focused = await page.evaluate(() => {
+            const pw = Array.from(document.querySelectorAll('input[type="password"], input[placeholder*="비밀번호"]'))
+                .find(e => e.offsetWidth > 0 && e.offsetHeight > 0);
+            if (!pw) return false;
+            pw.focus();
+            return true;
+        });
+        if (!focused) {
+            log(`  시도 ${attempt+1}: 비밀번호 칸 포커스 실패. 대기...`);
+            await delay(1000);
+            continue;
+        }
+        await delay(200);
+        // Ctrl+A로 기존 내용 전체 선택 후 덮어쓰기
+        await page.keyboard.down('Control');
+        await page.keyboard.press('a');
+        await page.keyboard.up('Control');
         await delay(80);
         await page.keyboard.type(BUBEE_PW, { delay: 70 });
         await delay(300);
+
+        // 비번이 실제로 들어갔는지 확인
+        const pwVal = await page.evaluate(() => {
+            const pw = document.querySelector('input[type="password"]');
+            return pw ? pw.value : '';
+        });
+        log(`  비밀번호 입력값 길이: ${pwVal.length}자`);
+        if (pwVal.length === 0) {
+            log(`  ⚠️ 비밀번호 입력 안됨. 재시도...`);
+            await delay(800);
+            continue;
+        }
 
         // 로그인 버튼 클릭 (disabled 강제 해제 후)
         const submitted = await page.evaluate(() => {
