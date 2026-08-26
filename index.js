@@ -731,7 +731,7 @@ async function doLogin(page) {
         return false;
     }
 
-    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (Vue 호환 방식)
+    // 공통 헬퍼: 셀렉터로 input 찾아서 값 입력 (Vue 호환 - 실제 키입력 방식)
     async function typeIntoInput(selectors, value, label) {
         const start = Date.now();
         while (Date.now() - start < 15000) {
@@ -742,24 +742,25 @@ async function doLogin(page) {
                     const visible = await el.evaluate(e => e.offsetWidth > 0 && e.offsetHeight > 0);
                     if (!visible) continue;
 
-                    // Vue/React 호환: nativeInputValueSetter 트릭으로 강제 주입
-                    const ok = await el.evaluate((e, val) => {
-                        try {
-                            // React/Vue 내부 setter로 값 세팅 (가장 확실한 방법)
-                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                            nativeInputValueSetter.call(e, val);
-                            e.dispatchEvent(new Event('input', { bubbles: true }));
-                            e.dispatchEvent(new Event('change', { bubbles: true }));
-                            return e.value === val;
-                        } catch(err) {
-                            e.value = val;
-                            e.dispatchEvent(new Event('input', { bubbles: true }));
-                            return true;
-                        }
-                    }, value);
+                    // 1. 기존 값 비우기
+                    await el.evaluate(e => { e.value = ''; });
+                    // 2. 포커스 주기
+                    await el.focus();
+                    await delay(150);
+                    // 3. Ctrl+A → Delete로 혹시 남은 값 제거
+                    await page.keyboard.down('Control');
+                    await page.keyboard.press('a');
+                    await page.keyboard.up('Control');
+                    await page.keyboard.press('Delete');
+                    await delay(100);
+                    // 4. 실제 키보드 타이핑 (Vue 이벤트 흐름 그대로 따름)
+                    await page.keyboard.type(value, { delay: 60 });
+                    await delay(200);
 
-                    if (ok) {
-                        log(`✅ ${label} 입력 완료 (${value.length}자)`);
+                    // 5. 확인
+                    const typed = await el.evaluate(e => e.value);
+                    if (typed && typed.length > 0) {
+                        log(`✅ ${label} 입력 완료 (${typed.length}자)`);
                         return true;
                     }
                 } catch(e) {}
