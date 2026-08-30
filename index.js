@@ -779,34 +779,31 @@ async function doLogin(page) {
             continue;
         }
 
-        log(`  시도 ${attempt+1}: 비밀번호 칸 DOM 포커스 후 타이핑`);
-        // DOM 레벨에서 직접 focus (오버레이 무시)
-        const focused = await page.evaluate(() => {
-            const pw = Array.from(document.querySelectorAll('input[type="password"], input[placeholder*="비밀번호"]'))
-                .find(e => e.offsetWidth > 0 && e.offsetHeight > 0);
-            if (!pw) return false;
-            pw.focus();
-            return true;
-        });
-        if (!focused) {
-            log(`  시도 ${attempt+1}: 비밀번호 칸 포커스 실패. 대기...`);
-            await delay(1000);
-            continue;
+        log(`  시도 ${attempt+1}: 비밀번호 칸 Puppeteer 직접 클릭 후 타이핑`);
+        // Puppeteer ElementHandle.click() = CDP 레벨 클릭 (오버레이 완전 무시)
+        const pwHandle = await page.$('input[type="password"]');
+        if (!pwHandle) {
+            // placeholder로 한 번 더 시도
+            const pwHandle2 = await page.$('input[placeholder*="비밀번호"]');
+            if (!pwHandle2) {
+                log(`  시도 ${attempt+1}: 비밀번호 칸 없음. 대기...`);
+                await delay(1000);
+                continue;
+            }
         }
-        await delay(200);
-        // Ctrl+A로 기존 내용 전체 선택 후 덮어쓰기
-        await page.keyboard.down('Control');
-        await page.keyboard.press('a');
-        await page.keyboard.up('Control');
+        const handle = await page.$('input[type="password"]') || await page.$('input[placeholder*="비밀번호"]');
+        if (!handle) { await delay(1000); continue; }
+
+        // CDP 직접 클릭 (오버레이 우회, 포커스 보장)
+        await handle.click({ clickCount: 3 });
+        await delay(150);
+        await page.keyboard.press('Delete');
         await delay(80);
         await page.keyboard.type(BUBEE_PW, { delay: 70 });
         await delay(300);
 
         // 비번이 실제로 들어갔는지 확인
-        const pwVal = await page.evaluate(() => {
-            const pw = document.querySelector('input[type="password"]');
-            return pw ? pw.value : '';
-        });
+        const pwVal = await handle.evaluate(e => e.value);
         log(`  비밀번호 입력값 길이: ${pwVal.length}자`);
         if (pwVal.length === 0) {
             log(`  ⚠️ 비밀번호 입력 안됨. 재시도...`);
